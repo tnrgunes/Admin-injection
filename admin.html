@@ -14,6 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.3/Sortable.min.js"></script>
 <style>
     :root { --bg: #000; --card: #121212; --accent: #fff; --red: #ff3b30; --blue: #007aff; --gray: #2c2c2e; --green: #30d158; }
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
@@ -41,15 +42,21 @@
     .media-box { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid var(--gray); margin-bottom: 25px; }
     .external-link { display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--blue); color: #fff; text-decoration: none; padding: 15px; border-radius: 12px; font-weight: 700; font-size: 14px; margin-bottom: 20px; }
     .gallery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .img-card { position: relative; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: var(--card); }
-    .img-card img { width: 100%; height: 100%; object-fit: cover; }
-    .del-btn { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.6); border: none; color: var(--red); border-radius: 5px; padding: 5px; cursor: pointer; }
+    .img-card { position: relative; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: var(--card); transition: transform 0.2s, box-shadow 0.2s; }
+    .img-card img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+    .del-btn { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.6); border: none; color: var(--red); border-radius: 5px; padding: 5px; cursor: pointer; z-index: 5; }
+    .img-card .drag-handle { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.6); border: none; color: #fff; border-radius: 5px; padding: 5px 7px; font-size: 12px; z-index: 5; cursor: grab; }
+    .img-card.sortable-ghost { opacity: 0.4; transform: scale(0.95); }
+    .img-card.sortable-chosen { box-shadow: 0 0 20px rgba(0,122,255,0.5); transform: scale(1.05); z-index: 10; }
+    .order-badge { position: absolute; bottom: 5px; left: 5px; background: rgba(0,122,255,0.8); color: #fff; font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 5px; z-index: 5; }
+    .reorder-hint { text-align: center; font-size: 11px; color: #8e8e93; margin-bottom: 12px; letter-spacing: 0.5px; }
+    .save-order-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--green); color: #000; font-weight: 800; cursor: pointer; font-size: 13px; letter-spacing: 1px; margin-bottom: 20px; display: none; }
+    .save-order-btn.visible { display: block; }
     input[type="text"], input[type="number"], textarea { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid var(--gray); background: #000; color: #fff; margin: 8px 0; box-sizing: border-box; font-family: inherit; font-size: 14px; outline: none; }
     textarea { resize: vertical; min-height: 60px; }
     .btn-white { width: 100%; padding: 16px; border-radius: 12px; border: none; background: #fff; color: #000; font-weight: 800; cursor: pointer; font-size: 14px; letter-spacing: 1px; }
     .btn-green { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--green); color: #000; font-weight: 800; cursor: pointer; font-size: 14px; letter-spacing: 1px; }
 
-    /* DESIGN CARDS IN ADMIN */
     .design-admin-grid { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
     .design-admin-card { background: var(--card); border: 1px solid var(--gray); border-radius: 16px; overflow: hidden; }
     .design-admin-card img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
@@ -58,7 +65,6 @@
     .design-admin-card-info .design-meta .d-price { font-weight: 800; font-size: 16px; color: var(--green); }
     .design-admin-card-info .design-meta .d-desc { font-size: 12px; color: #8e8e93; margin-top: 4px; line-height: 1.4; }
     .design-admin-card-info .design-del { background: rgba(255,59,48,0.15); border: 1px solid var(--red); color: var(--red); border-radius: 10px; padding: 10px 14px; cursor: pointer; font-size: 14px; }
-    .section-divider { height: 1px; background: var(--gray); margin: 20px 0; }
     .form-label { font-size: 11px; color: #8e8e93; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 12px; display: block; }
 </style>
 ```
@@ -108,6 +114,8 @@
         <input type="text" id="img-url" placeholder="Paste Direct Link here...">
         <button class="btn-white" onclick="savePhoto()">PUBLISH PHOTO</button>
     </div>
+    <div class="reorder-hint"><i class="fas fa-grip-vertical"></i> Hold &amp; drag photos to reorder</div>
+    <button class="save-order-btn" id="saveOrderBtn" onclick="saveOrder()">SAVE NEW ORDER</button>
     <div class="gallery-grid" id="adminGallery"></div>
 </div>
 
@@ -144,6 +152,9 @@
     const realToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     let currentMonth = now.getMonth(), currentYear = now.getFullYear();
     let blockedDates = new Set();
+    let galleryDocs = [];
+    let orderChanged = false;
+    let sortableInstance = null;
 
     function selectUser(user) {
         selectedUser = user;
@@ -220,26 +231,95 @@
         if(id === 'tab-designs') fetchAdminDesigns();
     }
 
-    // --- GALLERY ---
+    // --- GALLERY WITH DRAG & DROP ---
     async function fetchGallery() {
         const grid = document.getElementById('adminGallery');
-        const snap = await db.collection("photos").orderBy("createdAt", "desc").get();
+        let snap;
+        try {
+            snap = await db.collection("photos").orderBy("order", "asc").get();
+            if(snap.empty) snap = await db.collection("photos").orderBy("createdAt", "desc").get();
+        } catch(e) {
+            snap = await db.collection("photos").orderBy("createdAt", "desc").get();
+        }
         grid.innerHTML = "";
+        galleryDocs = [];
+        let idx = 0;
         snap.forEach(doc => {
-            grid.innerHTML += '<div class="img-card"><img src="' + doc.data().url + '"><button class="del-btn" onclick="deletePhoto(\'' + doc.id + '\')"><i class="fas fa-trash"></i></button></div>';
+            const d = doc.data();
+            galleryDocs.push({ id: doc.id, url: d.url, order: d.order !== undefined ? d.order : idx });
+            grid.innerHTML += '<div class="img-card" data-id="' + doc.id + '">'
+                + '<span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>'
+                + '<img src="' + d.url + '">'
+                + '<span class="order-badge">' + (idx + 1) + '</span>'
+                + '<button class="del-btn" onclick="event.stopPropagation(); deletePhoto(\'' + doc.id + '\')"><i class="fas fa-trash"></i></button>'
+                + '</div>';
+            idx++;
         });
+
+        orderChanged = false;
+        document.getElementById('saveOrderBtn').classList.remove('visible');
+
+        if(sortableInstance) sortableInstance.destroy();
+        sortableInstance = new Sortable(grid, {
+            animation: 200,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            delay: 150,
+            delayOnTouchOnly: true,
+            touchStartThreshold: 5,
+            onEnd: function() {
+                orderChanged = true;
+                document.getElementById('saveOrderBtn').classList.add('visible');
+                updateOrderBadges();
+            }
+        });
+    }
+
+    function updateOrderBadges() {
+        const cards = document.querySelectorAll('#adminGallery .img-card');
+        cards.forEach(function(card, i) {
+            var badge = card.querySelector('.order-badge');
+            if(badge) badge.textContent = (i + 1);
+        });
+    }
+
+    async function saveOrder() {
+        const btn = document.getElementById('saveOrderBtn');
+        btn.textContent = 'SAVING...';
+        btn.disabled = true;
+        const cards = document.querySelectorAll('#adminGallery .img-card');
+        const batch = db.batch();
+        cards.forEach(function(card, i) {
+            const docId = card.getAttribute('data-id');
+            const ref = db.collection("photos").doc(docId);
+            batch.update(ref, { order: i });
+        });
+        await batch.commit();
+        btn.textContent = 'SAVED!';
+        setTimeout(function() {
+            btn.textContent = 'SAVE NEW ORDER';
+            btn.disabled = false;
+            btn.classList.remove('visible');
+            orderChanged = false;
+        }, 1500);
     }
 
     async function savePhoto() {
         const url = document.getElementById('img-url').value.trim();
         if(url && confirm("Are you sure you want to publish this photo?")) {
-            await db.collection("photos").add({ url: url, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            const snap = await db.collection("photos").get();
+            const newOrder = snap.size;
+            await db.collection("photos").add({ url: url, order: newOrder, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             document.getElementById('img-url').value = ""; fetchGallery();
         }
     }
 
     async function deletePhoto(id) {
-        if(confirm("Are you sure you want to delete this photo?")) { await db.collection("photos").doc(id).delete(); fetchGallery(); }
+        if(confirm("Are you sure you want to delete this photo?")) {
+            await db.collection("photos").doc(id).delete();
+            fetchGallery();
+        }
     }
 
     // --- DESIGNS ---
