@@ -234,24 +234,30 @@
     // --- GALLERY WITH DRAG & DROP ---
     async function fetchGallery() {
         const grid = document.getElementById('adminGallery');
-        let snap;
-        try {
-            snap = await db.collection("photos").orderBy("order", "asc").get();
-            if(snap.empty) snap = await db.collection("photos").orderBy("createdAt", "desc").get();
-        } catch(e) {
-            snap = await db.collection("photos").orderBy("createdAt", "desc").get();
-        }
+        let snap = await db.collection("photos").get();
+        let allDocs = [];
+        snap.forEach(doc => { allDocs.push({ id: doc.id, data: doc.data() }); });
+        allDocs.sort(function(a, b) {
+            var oa = a.data.order !== undefined ? a.data.order : 999999;
+            var ob = b.data.order !== undefined ? b.data.order : 999999;
+            if(oa === ob) {
+                var ta = a.data.createdAt ? a.data.createdAt.seconds : 0;
+                var tb = b.data.createdAt ? b.data.createdAt.seconds : 0;
+                return tb - ta;
+            }
+            return oa - ob;
+        });
         grid.innerHTML = "";
         galleryDocs = [];
         let idx = 0;
-        snap.forEach(doc => {
-            const d = doc.data();
-            galleryDocs.push({ id: doc.id, url: d.url, order: d.order !== undefined ? d.order : idx });
-            grid.innerHTML += '<div class="img-card" data-id="' + doc.id + '">'
+        allDocs.forEach(function(item) {
+            var d = item.data;
+            galleryDocs.push({ id: item.id, url: d.url, order: d.order !== undefined ? d.order : idx });
+            grid.innerHTML += '<div class="img-card" data-id="' + item.id + '">'
                 + '<span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>'
                 + '<img src="' + d.url + '">'
                 + '<span class="order-badge">' + (idx + 1) + '</span>'
-                + '<button class="del-btn" onclick="event.stopPropagation(); deletePhoto(\'' + doc.id + '\')"><i class="fas fa-trash"></i></button>'
+                + '<button class="del-btn" onclick="event.stopPropagation(); deletePhoto(\'' + item.id + '\')"><i class="fas fa-trash"></i></button>'
                 + '</div>';
             idx++;
         });
