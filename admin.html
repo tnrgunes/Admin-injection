@@ -389,19 +389,38 @@
             const desc = d.description || '';
             const soldBtnText = isSold ? 'UNSOLD' : 'SOLD';
             const soldBtnClass = isSold ? 'design-sold-btn is-sold' : 'design-sold-btn';
-            grid.innerHTML += '<div class="design-admin-card"' + (isSold ? ' style="opacity:0.5"' : '') + '>'
-                + '<img src="' + d.url + '">'
+
+            const cardEl = document.createElement('div');
+            cardEl.className = 'design-admin-card';
+            if(isSold) cardEl.style.opacity = '0.5';
+            cardEl.innerHTML = '<img src="' + d.url + '">'
                 + '<div class="design-admin-card-info">'
                 + '<div class="design-meta">'
                 + '<div class="d-price">' + priceHtml + '</div>'
-                + (desc ? '<div class="d-desc">' + desc + '</div>' : '')
+                + (desc ? '<div class="d-desc"></div>' : '')
                 + '</div>'
                 + '<div class="design-admin-card-actions">'
-                + '<button class="' + soldBtnClass + '" onclick="toggleSold(\'' + doc.id + '\', ' + isSold + ')">' + soldBtnText + '</button>'
-                + '<button class="design-edit-btn" onclick="openEditModal(\'' + doc.id + '\', \'' + (d.price || '') + '\', \'' + (d.discountPrice || '') + '\', \'' + (desc.replace(/'/g, "\\'")) + '\')"><i class="fas fa-pen"></i></button>'
-                + '<button class="design-del" onclick="deleteDesign(\'' + doc.id + '\')"><i class="fas fa-trash"></i></button>'
+                + '<button class="' + soldBtnClass + '">' + soldBtnText + '</button>'
+                + '<button class="design-edit-btn"><i class="fas fa-pen"></i></button>'
+                + '<button class="design-del"><i class="fas fa-trash"></i></button>'
                 + '</div>'
-                + '</div></div>';
+                + '</div>';
+
+            if(desc) {
+                const descEl = cardEl.querySelector('.d-desc');
+                if(descEl) descEl.textContent = desc;
+            }
+
+            const soldBtn = cardEl.querySelector('.design-sold-btn');
+            soldBtn.addEventListener('click', function() { toggleSold(doc.id, isSold); });
+
+            const editBtn = cardEl.querySelector('.design-edit-btn');
+            editBtn.addEventListener('click', function() { openEditModal(doc.id, d.price || '', d.discountPrice || '', desc); });
+
+            const delBtn = cardEl.querySelector('.design-del');
+            delBtn.addEventListener('click', function() { deleteDesign(doc.id); });
+
+            grid.appendChild(cardEl);
         });
     }
 
