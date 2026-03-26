@@ -65,6 +65,21 @@
     .design-admin-card-info .design-meta .d-price { font-weight: 800; font-size: 16px; color: var(--green); }
     .design-admin-card-info .design-meta .d-desc { font-size: 12px; color: #8e8e93; margin-top: 4px; line-height: 1.4; }
     .design-admin-card-info .design-del { background: rgba(255,59,48,0.15); border: 1px solid var(--red); color: var(--red); border-radius: 10px; padding: 10px 14px; cursor: pointer; font-size: 14px; }
+    .design-admin-card-actions { display: flex; gap: 8px; align-items: center; }
+    .design-edit-btn { background: rgba(0,122,255,0.15); border: 1px solid var(--blue); color: var(--blue); border-radius: 10px; padding: 10px 14px; cursor: pointer; font-size: 14px; }
+    .design-sold-btn { background: rgba(255,165,0,0.15); border: 1px solid #ff9500; color: #ff9500; border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+    .design-sold-btn.is-sold { background: rgba(255,59,48,0.15); border-color: var(--red); color: var(--red); }
+    .d-old-price { text-decoration: line-through; color: #666; font-size: 13px; margin-right: 8px; }
+    .d-discount-price { color: var(--green); font-weight: 800; font-size: 16px; }
+    .d-sold-badge { display: inline-block; background: var(--red); color: #fff; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 5px; letter-spacing: 1px; margin-left: 8px; }
+    .edit-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; }
+    .edit-modal-overlay.active { display: flex; }
+    .edit-modal { background: var(--card); border: 1px solid var(--gray); border-radius: 20px; padding: 25px; width: 90%; max-width: 380px; }
+    .edit-modal h3 { margin: 0 0 15px; font-size: 16px; letter-spacing: 2px; }
+    .edit-modal .btn-row { display: flex; gap: 10px; margin-top: 15px; }
+    .edit-modal .btn-row button { flex: 1; padding: 14px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; font-size: 13px; }
+    .edit-cancel { background: var(--gray); color: #fff; }
+    .edit-save { background: var(--green); color: #000; }
     .form-label { font-size: 11px; color: #8e8e93; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 12px; display: block; }
 </style>
 ```
@@ -139,6 +154,25 @@
 <button onclick="location.reload()" style="width:100%; padding:40px; background:none; border:none; color:#444; font-size:11px; cursor:pointer;">LOGOUT</button>
 ```
 
+</div>
+
+<!-- EDIT DESIGN MODAL -->
+
+<div class="edit-modal-overlay" id="editModal">
+    <div class="edit-modal">
+        <h3>EDIT DESIGN</h3>
+        <input type="hidden" id="edit-id">
+        <span class="form-label" style="display:block;color:#8e8e93;font-size:11px;letter-spacing:1.5px;font-weight:700;margin-top:0;">Price (&euro;)</span>
+        <input type="number" id="edit-price" placeholder="Price" style="width:100%;padding:14px;border-radius:12px;border:1px solid #2c2c2e;background:#000;color:#fff;margin:6px 0;font-size:14px;outline:none;">
+        <span class="form-label" style="display:block;color:#8e8e93;font-size:11px;letter-spacing:1.5px;font-weight:700;margin-top:10px;">Discount Price (&euro;) <span style="font-weight:400;color:#555;">— leave empty for no discount</span></span>
+        <input type="number" id="edit-discount" placeholder="Discount price (optional)" style="width:100%;padding:14px;border-radius:12px;border:1px solid #2c2c2e;background:#000;color:#fff;margin:6px 0;font-size:14px;outline:none;">
+        <span class="form-label" style="display:block;color:#8e8e93;font-size:11px;letter-spacing:1.5px;font-weight:700;margin-top:10px;">Description</span>
+        <textarea id="edit-desc" placeholder="Description" style="width:100%;padding:14px;border-radius:12px;border:1px solid #2c2c2e;background:#000;color:#fff;margin:6px 0;font-size:14px;outline:none;resize:vertical;min-height:60px;font-family:inherit;"></textarea>
+        <div class="btn-row" style="display:flex;gap:10px;margin-top:15px;">
+            <button class="edit-cancel" onclick="closeEditModal()" style="flex:1;padding:14px;border-radius:12px;border:none;font-weight:700;cursor:pointer;font-size:13px;background:#2c2c2e;color:#fff;">CANCEL</button>
+            <button class="edit-save" onclick="saveEdit()" style="flex:1;padding:14px;border-radius:12px;border:none;font-weight:700;cursor:pointer;font-size:13px;background:#30d158;color:#000;">SAVE</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -339,16 +373,34 @@
         }
         snap.forEach(doc => {
             const d = doc.data();
-            const price = d.price ? ('\u20AC' + d.price) : 'No price';
+            const isSold = d.sold === true;
+            const hasDiscount = d.discountPrice && d.discountPrice !== '';
+            let priceHtml = '';
+            if(d.price) {
+                if(hasDiscount) {
+                    priceHtml = '<span class="d-old-price">\u20AC' + d.price + '</span><span class="d-discount-price">\u20AC' + d.discountPrice + '</span>';
+                } else {
+                    priceHtml = '<span class="d-discount-price">\u20AC' + d.price + '</span>';
+                }
+            } else {
+                priceHtml = '<span style="color:#555">No price</span>';
+            }
+            if(isSold) priceHtml += '<span class="d-sold-badge">SOLD</span>';
             const desc = d.description || '';
-            grid.innerHTML += '<div class="design-admin-card">'
+            const soldBtnText = isSold ? 'UNSOLD' : 'SOLD';
+            const soldBtnClass = isSold ? 'design-sold-btn is-sold' : 'design-sold-btn';
+            grid.innerHTML += '<div class="design-admin-card"' + (isSold ? ' style="opacity:0.5"' : '') + '>'
                 + '<img src="' + d.url + '">'
                 + '<div class="design-admin-card-info">'
                 + '<div class="design-meta">'
-                + '<div class="d-price">' + price + '</div>'
+                + '<div class="d-price">' + priceHtml + '</div>'
                 + (desc ? '<div class="d-desc">' + desc + '</div>' : '')
                 + '</div>'
+                + '<div class="design-admin-card-actions">'
+                + '<button class="' + soldBtnClass + '" onclick="toggleSold(\'' + doc.id + '\', ' + isSold + ')">' + soldBtnText + '</button>'
+                + '<button class="design-edit-btn" onclick="openEditModal(\'' + doc.id + '\', \'' + (d.price || '') + '\', \'' + (d.discountPrice || '') + '\', \'' + (desc.replace(/'/g, "\\'")) + '\')"><i class="fas fa-pen"></i></button>'
                 + '<button class="design-del" onclick="deleteDesign(\'' + doc.id + '\')"><i class="fas fa-trash"></i></button>'
+                + '</div>'
                 + '</div></div>';
         });
     }
@@ -364,7 +416,9 @@
         await db.collection("designs").add({
             url: url,
             price: price || '',
+            discountPrice: '',
             description: desc || '',
+            sold: false,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
@@ -379,6 +433,37 @@
             await db.collection("designs").doc(id).delete();
             fetchAdminDesigns();
         }
+    }
+
+    async function toggleSold(id, currentlySold) {
+        await db.collection("designs").doc(id).update({ sold: !currentlySold });
+        fetchAdminDesigns();
+    }
+
+    function openEditModal(id, price, discount, desc) {
+        document.getElementById('edit-id').value = id;
+        document.getElementById('edit-price').value = price;
+        document.getElementById('edit-discount').value = discount;
+        document.getElementById('edit-desc').value = desc;
+        document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('active');
+    }
+
+    async function saveEdit() {
+        const id = document.getElementById('edit-id').value;
+        const price = document.getElementById('edit-price').value.trim();
+        const discount = document.getElementById('edit-discount').value.trim();
+        const desc = document.getElementById('edit-desc').value.trim();
+        await db.collection("designs").doc(id).update({
+            price: price || '',
+            discountPrice: discount || '',
+            description: desc || ''
+        });
+        closeEditModal();
+        fetchAdminDesigns();
     }
 </script>
 
