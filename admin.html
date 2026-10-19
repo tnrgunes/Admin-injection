@@ -9,6 +9,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://i.postimg.cc/kX47vXzS/tattoo-icon.png">
+    <meta name="apple-mobile-web-app-title" content="Inkjection">
+    <link rel="manifest" href="manifest.webmanifest">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,6 +19,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.3/Sortable.min.js"></script>
     <style>
@@ -175,6 +178,71 @@
         .day-appts { display: flex; flex-direction: column; gap: 8px; }
         .day-appt { padding: 10px 12px; border-radius: 12px; background: var(--card2); border: 1px solid var(--card-border); font-size: 12px; display: flex; justify-content: space-between; gap: 8px; }
 
+        /* ===== APP SHELL ===== */
+        body.in-panel { display: block; }
+        body.in-panel .hw-mascot { display: none; }
+        #admin-panel { max-width: 560px; margin: 0 auto; padding: 0 16px calc(96px + env(safe-area-inset-bottom)); }
+        .appbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 12px; margin: 0 -16px; padding: calc(10px + env(safe-area-inset-top)) 16px 10px; background: rgba(11,7,16,0.82); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border-bottom: 1px solid var(--card-border); }
+        .appbar-logo { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(217,167,88,0.45); object-fit: cover; }
+        .appbar-title { flex: 1; display: flex; flex-direction: column; line-height: 1.15; }
+        .appbar-title b { font-family: var(--font-display); font-weight: 400; letter-spacing: 5px; font-size: 17px; color: var(--accent-warm); }
+        .appbar-title span { font-size: 10px; letter-spacing: 2px; color: var(--accent-soft); text-transform: uppercase; font-weight: 700; }
+        .icon-btn { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); color: var(--text-soft); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; text-decoration: none; }
+        .icon-btn:active { transform: scale(.94); border-color: var(--accent); }
+        .screen-title { font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: 1px; margin: 20px 2px 16px; }
+        .screen-sub { font-size: 12px; color: var(--text-dim); line-height: 1.6; margin: -6px 2px 16px; }
+        .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; display: none; justify-content: space-around; padding: 8px 6px calc(8px + env(safe-area-inset-bottom)); background: rgba(14,9,20,0.92); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border-top: 1px solid var(--card-border); }
+        body.in-panel .bottom-nav { display: flex; }
+        .nav-btn { position: relative; flex: 1; max-width: 110px; background: none; border: none; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0; cursor: pointer; font: 700 10px var(--font-body); letter-spacing: .5px; }
+        .nav-btn i { font-size: 18px; transition: transform .2s; }
+        .nav-btn.active { color: var(--accent-warm); }
+        .nav-btn.active i { transform: translateY(-1px); }
+        .nav-btn.active::before { content: ''; position: absolute; top: -9px; left: 30%; right: 30%; height: 2px; border-radius: 2px; background: var(--grad); }
+        .nav-btn .tab-badge { top: 0; right: calc(50% - 22px); font-style: normal; }
+        .segmented { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--card); border: 1px solid var(--card-border); margin-bottom: 18px; }
+        .seg-btn { flex: 1; padding: 10px 4px; border-radius: 10px; border: none; background: none; color: var(--text-dim); font: 700 12px var(--font-body); cursor: pointer; }
+        .seg-btn.active { background: var(--grad); color: #150c22; }
+        .media-sub { display: none; } .media-sub.active { display: block; }
+        .icon-btn.on { color: var(--accent-warm); border-color: rgba(217,167,88,0.5); }
+        .toast { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translate(-50%, -150%); z-index: 10001; padding: 12px 18px; border-radius: 14px; background: var(--card2); border: 1px solid var(--accent-warm); color: #fff; font-size: 13px; font-weight: 700; box-shadow: 0 10px 30px rgba(0,0,0,.5); transition: transform .35s ease; max-width: 90vw; cursor: pointer; }
+        .toast.show { transform: translate(-50%, 0); }
+        .photo-viewer { display: none; position: fixed; inset: 0; z-index: 10002; background: rgba(0,0,0,.94); align-items: center; justify-content: center; padding: 20px; }
+        .photo-viewer.active { display: flex; }
+        .photo-viewer img { max-width: 100%; max-height: 100%; border-radius: 12px; }
+        .bk-photos { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .bk-photos img { width: 76px; height: 76px; object-fit: cover; border-radius: 10px; border: 1px solid var(--card-border); cursor: pointer; }
+        .bk-photos .loading { font-size: 11px; color: var(--text-dim); }
+
+        /* site form */
+        .site-card { background: var(--card); border: 1px solid var(--card-border); border-radius: 18px; margin-bottom: 12px; overflow: hidden; }
+        .site-card summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 16px; cursor: pointer; font-weight: 800; font-size: 14px; }
+        .site-card summary::-webkit-details-marker { display: none; }
+        .site-card summary i.ic { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--accent-glow); color: var(--accent-soft); font-size: 13px; }
+        .site-card summary .chev { margin-left: auto; color: var(--text-dim); font-size: 12px; transition: transform .2s; }
+        .site-card[open] summary .chev { transform: rotate(180deg); }
+        .site-card .body { padding: 0 16px 16px; }
+        .fld { margin-top: 12px; }
+        .fld > label { display: block; font-size: 10px; letter-spacing: 1.5px; font-weight: 800; color: var(--accent-soft); text-transform: uppercase; margin-bottom: 2px; }
+        .fld .hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+        .lang-pair { display: grid; grid-template-columns: 1fr; gap: 0; }
+        .lang-in { position: relative; }
+        .lang-in em { position: absolute; top: 18px; right: 12px; font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: 1px; color: var(--text-dim); pointer-events: none; }
+        .lang-in input, .lang-in textarea { padding-right: 40px !important; }
+        .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--card-border); font-size: 13px; }
+        .switch-row:last-child { border-bottom: none; }
+        .switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--gray); border: 1px solid var(--card-border); transition: .2s; cursor: pointer; }
+        .switch span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: .2s; }
+        .switch input:checked + span { background: var(--grad); }
+        .switch input:checked + span::after { transform: translateX(20px); }
+        .save-bar { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom)); transform: translate(-50%, 200%); z-index: 55; display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 16px; border-radius: 999px; background: var(--card2); border: 1px solid var(--accent-warm); box-shadow: 0 10px 30px rgba(0,0,0,.55); font-size: 12px; font-weight: 700; transition: transform .3s; white-space: nowrap; }
+        .save-bar.show { transform: translate(-50%, 0); }
+        .star-pick { display: flex; gap: 6px; margin: 6px 0 4px; }
+        .star-pick button { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card2); color: var(--text-dim); font-size: 16px; cursor: pointer; }
+        .star-pick button.on { color: var(--accent-warm); border-color: var(--accent-warm); background: rgba(217,167,88,0.12); }
+        .rv-stars { color: var(--accent-warm); font-size: 12px; letter-spacing: 2px; }
+
         /* bookings */
         .tab-btn { position: relative; }
         .tab-badge { position: absolute; top: -6px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent-warm); color: #150c22; font-size: 10px; font-weight: 800; display: none; align-items: center; justify-content: center; }
@@ -281,20 +349,14 @@
 </div>
 
 <div id="admin-panel">
-    <div class="header">
-        <div class="hw-pumpkincat"><div id="hwPumpkinCatAnim"></div></div>
-        <div class="hero-logo-wrap"><img class="hero-logo" src="https://i.ibb.co/tPTrSN8k/image.png" alt="Inkjection"></div>
-        <h1>INKJECTION</h1>
-        <span id="welcome-user" class="user-badge"></span>
-        <button class="logout-btn" onclick="doLogout()"><i class="fas fa-right-from-bracket"></i> LOGOUT</button>
+    <div class="appbar">
+        <img class="appbar-logo" src="https://i.ibb.co/tPTrSN8k/image.png" alt="Inkjection">
+        <div class="appbar-title"><b>INKJECTION</b><span id="welcome-user"></span></div>
+        <button class="icon-btn" id="pushBtn" onclick="openPushSheet()" title="Notifications"><i class="fas fa-bell-slash"></i></button>
+        <a class="icon-btn" href="https://inkjection.be" target="_blank" title="Open website"><i class="fas fa-arrow-up-right-from-square"></i></a>
+        <button class="icon-btn" onclick="doLogout()" title="Logout"><i class="fas fa-right-from-bracket"></i></button>
     </div>
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('tab-cal', this)"><i class="fas fa-calendar-days"></i>CALENDAR</button>
-        <button class="tab-btn" onclick="switchTab('tab-book', this)"><i class="fas fa-inbox"></i>BOOKINGS<span class="tab-badge" id="pendingBadge"></span></button>
-        <button class="tab-btn" onclick="switchTab('tab-gal', this)"><i class="fas fa-images"></i>GALLERY</button>
-        <button class="tab-btn" onclick="switchTab('tab-designs', this)"><i class="fas fa-palette"></i>DESIGNS</button>
-        <button class="tab-btn" onclick="switchTab('tab-trick', this)"><i class="fas fa-skull"></i>TRICK</button>
-    </div>
+    <h2 class="screen-title" id="screenTitle">Agenda</h2>
 
     <!-- CALENDAR TAB -->
     <div id="tab-cal" class="section active">
@@ -310,6 +372,8 @@
             <span><i class="sq"></i>Closed</span>
         </div>
         <div class="cal-tip">Tap a day to add times or close it.</div>
+        <span class="sheet-label" style="margin-top:26px">Coming up</span>
+        <div class="booking-list" id="upcomingList"></div>
     </div>
 
     <!-- BOOKINGS TAB -->
@@ -322,8 +386,14 @@
         <div class="booking-list" id="bookingList"></div>
     </div>
 
-    <!-- GALLERY TAB -->
-    <div id="tab-gal" class="section">
+    <!-- MEDIA (gallery / designs / trick) -->
+    <div id="tab-media" class="section">
+    <div class="segmented">
+        <button class="seg-btn active" data-m="tab-gal" onclick="showMedia('tab-gal')">Gallery</button>
+        <button class="seg-btn" data-m="tab-designs" onclick="showMedia('tab-designs')">Designs</button>
+        <button class="seg-btn" data-m="tab-trick" onclick="showMedia('tab-trick')">Trick or Tattoo</button>
+    </div>
+    <div id="tab-gal" class="media-sub active">
         <div class="media-box">
             <a href="https://postimages.org/" target="_blank" class="external-link"><i class="fas fa-upload"></i> OPEN POSTIMAGES</a>
             <input type="text" id="img-url" placeholder="Paste Direct Link here...">
@@ -334,8 +404,8 @@
         <div class="gallery-grid" id="adminGallery"></div>
     </div>
 
-    <!-- DESIGNS TAB -->
-    <div id="tab-designs" class="section">
+    <!-- DESIGNS -->
+    <div id="tab-designs" class="media-sub">
         <div class="media-box">
             <a href="https://postimages.org/" target="_blank" class="external-link"><i class="fas fa-upload"></i> OPEN POSTIMAGES</a>
             <span class="form-label">Image URL</span>
@@ -351,8 +421,8 @@
         <div class="design-admin-grid" id="adminDesigns"></div>
     </div>
 
-    <!-- TRICK OR TATTOO TAB -->
-    <div id="tab-trick" class="section">
+    <!-- TRICK OR TATTOO -->
+    <div id="tab-trick" class="media-sub">
         <div class="trick-banner">
             <i class="fas fa-skull"></i>
             <div>
@@ -375,9 +445,62 @@
         <div class="design-admin-grid" id="adminTrick"></div>
     </div>
 
-    <div class="hw-footer-ghost"><div id="hwGhostAnim"></div></div>
-    <button class="logout-btn" onclick="doLogout()">LOGOUT</button>
+    </div><!-- /tab-media -->
+
+    <!-- SITE CONTENT -->
+    <div id="tab-site" class="section">
+        <p class="screen-sub">Everything you change here shows on inkjection.be after you press <b>Save</b>. Leave NL or EN empty to keep the current text.</p>
+        <div id="siteForm"></div>
+        <div class="save-bar" id="siteSaveBar">
+            <span>Unsaved changes</span>
+            <button class="mini-btn" onclick="loadSiteForm(true)">UNDO</button>
+            <button class="mini-btn ok" onclick="saveSiteForm()"><i class="fas fa-check"></i> SAVE</button>
+        </div>
+    </div>
+
+    <!-- REVIEWS -->
+    <div id="tab-reviews" class="section">
+        <div class="media-box">
+            <span class="form-label" style="margin-top:0">Name</span>
+            <input type="text" id="rv-name" placeholder="e.g. Emma Peeters" maxlength="60">
+            <span class="form-label">Stars</span>
+            <div class="star-pick" id="rv-stars"></div>
+            <span class="form-label">Review</span>
+            <textarea id="rv-text" placeholder="What did the customer say?" maxlength="1200"></textarea>
+            <span class="form-label">Photo links <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional, one per line)</span></span>
+            <textarea id="rv-photos" placeholder="https://i.postimg.cc/..." style="min-height:50px"></textarea>
+            <div style="margin-top:12px"><button class="btn-green" id="rv-save" onclick="saveReview()">ADD REVIEW</button></div>
+            <button class="login-link" id="rv-cancel" style="display:none;width:100%;margin-top:10px" onclick="resetReviewForm()">Cancel editing</button>
+        </div>
+        <div id="reviewImport"></div>
+        <div class="booking-list" id="reviewList"></div>
+    </div>
 </div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottomNav">
+    <button class="nav-btn active" data-tab="tab-cal" onclick="switchTab('tab-cal')"><i class="fas fa-calendar-days"></i><span>Agenda</span></button>
+    <button class="nav-btn" data-tab="tab-book" onclick="switchTab('tab-book')"><i class="fas fa-inbox"></i><span>Requests</span><em class="tab-badge" id="pendingBadge"></em></button>
+    <button class="nav-btn" data-tab="tab-site" onclick="switchTab('tab-site')"><i class="fas fa-pen-nib"></i><span>Website</span></button>
+    <button class="nav-btn" data-tab="tab-media" onclick="switchTab('tab-media')"><i class="fas fa-images"></i><span>Media</span></button>
+    <button class="nav-btn" data-tab="tab-reviews" onclick="switchTab('tab-reviews')"><i class="fas fa-star"></i><span>Reviews</span></button>
+</nav>
+
+<!-- NOTIFICATIONS SHEET -->
+<div class="edit-modal-overlay" id="pushModal" onclick="if(event.target===this)this.classList.remove('active')">
+    <div class="edit-modal">
+        <h3>NOTIFICATIONS</h3>
+        <div id="pushBody" class="empty-note" style="font-size:13px;line-height:1.6"></div>
+        <div class="btn-row">
+            <button class="edit-cancel" onclick="document.getElementById('pushModal').classList.remove('active')">CLOSE</button>
+            <button class="edit-save" id="pushAction">TURN ON</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST + PHOTO VIEWER -->
+<div class="toast" id="toast"></div>
+<div class="photo-viewer" id="photoViewer" onclick="this.classList.remove('active')"><img id="photoViewerImg" alt=""></div>
 
 <!-- DAY MODAL (times + open/close) -->
 <div class="edit-modal-overlay" id="dayModal" onclick="if(event.target===this)closeDay()">
@@ -509,10 +632,14 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
             document.getElementById('welcome-user').innerText = 'Welcome, ' + nm;
             document.getElementById('auth-container').style.display = 'none';
             document.getElementById('admin-panel').style.display = 'block';
+            document.body.classList.add('in-panel');
             document.getElementById('login-pass').value = '';
-            loadPanelAnims();
-            loadBlockedDates();
+            startLive();
+            switchTab(currentTab);
+            refreshPushState(); renewPushToken();
         } else {
+            stopLive();
+            document.body.classList.remove('in-panel');
             document.getElementById('admin-panel').style.display = 'none';
             document.getElementById('auth-container').style.display = '';
         }
@@ -534,22 +661,42 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
     }
     const SIZE_LABEL = { small: 'Small (0-8cm)', medium: 'Medium (8-15cm)', large: 'Large (15+cm)' };
 
-    async function loadBlockedDates() { return loadCalendarData(); }
-    async function loadCalendarData() {
-        try {
-            const [bs, sl, bk, ap] = await Promise.all([
-                db.collection('blockedDays').get(),
-                db.collection('slots').get(),
-                db.collection('bookedSlots').get(),
-                db.collection('appointments').get()
-            ]);
-            blockedDates.clear(); bs.forEach(d => blockedDates.add(d.id));
-            daySlots = {}; sl.forEach(d => { daySlots[d.id] = (d.data().times || []).slice().sort(); });
-            takenSlots = {}; bk.forEach(d => { const x = d.data(); (takenSlots[x.date] = takenSlots[x.date] || new Set()).add(x.time); });
-            appointments = []; ap.forEach(d => appointments.push(Object.assign({ id: d.id }, d.data())));
-        } catch (e) { console.error(e); alert('Could not load calendar data: ' + (e.code || e.message)); }
-        renderCalendar(); renderBookings(); updatePendingBadge();
-        if (openDayStr) renderDaySheet();
+    async function loadBlockedDates() { startLive(); }
+    async function loadCalendarData() { startLive(); }
+
+    // ----- live data: the panel updates by itself when something changes -----
+    let liveUnsubs = [], liveReady = {}, rerenderTimer = null;
+    function rerenderAll() {
+        clearTimeout(rerenderTimer);
+        rerenderTimer = setTimeout(() => { renderCalendar(); renderBookings(); renderUpcoming(); updatePendingBadge(); if (openDayStr) renderDaySheet(); }, 60);
+    }
+    function liveErr(e) { console.error(e); toast('Connection problem: ' + (e.code || e.message)); }
+    function startLive() {
+        if (liveUnsubs.length) return;
+        liveUnsubs.push(db.collection('blockedDays').onSnapshot(sn => { blockedDates.clear(); sn.forEach(d => blockedDates.add(d.id)); rerenderAll(); }, liveErr));
+        liveUnsubs.push(db.collection('slots').onSnapshot(sn => { daySlots = {}; sn.forEach(d => { daySlots[d.id] = (d.data().times || []).slice().sort(); }); rerenderAll(); }, liveErr));
+        liveUnsubs.push(db.collection('bookedSlots').onSnapshot(sn => { takenSlots = {}; sn.forEach(d => { const x = d.data(); (takenSlots[x.date] = takenSlots[x.date] || new Set()).add(x.time); }); rerenderAll(); }, liveErr));
+        liveUnsubs.push(db.collection('appointments').onSnapshot(sn => {
+            if (liveReady.appts) {
+                const fresh = sn.docChanges().filter(c => c.type === 'added' && !c.doc.metadata.hasPendingWrites && c.doc.data().status === 'pending');
+                if (fresh.length) {
+                    const a = fresh[0].doc.data();
+                    toast('<i class="fas fa-bell"></i> New request: ' + esc(a.name) + ' · ' + esc(a.date) + (a.time ? ' ' + esc(a.time) : ''), () => switchTab('tab-book'));
+                    try { navigator.vibrate && navigator.vibrate([120, 60, 120]); } catch (e) {}
+                }
+            }
+            liveReady.appts = true;
+            appointments = []; sn.forEach(d => appointments.push(Object.assign({ id: d.id }, d.data())));
+            rerenderAll();
+        }, liveErr));
+    }
+    function stopLive() { liveUnsubs.forEach(u => { try { u(); } catch (e) {} }); liveUnsubs = []; liveReady = {}; }
+
+    let toastTimer = null;
+    function toast(html, onClick) {
+        const t = document.getElementById('toast');
+        t.innerHTML = html; t.onclick = () => { t.classList.remove('show'); if (onClick) onClick(); };
+        t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 6000);
     }
 
     function renderCalendar() {
@@ -634,11 +781,228 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         loadCalendarData();
     }
 
+    // ===== PUSH NOTIFICATIONS (installed web app) =====
+    const VAPID_KEY = 'BDIiPNXrYz7EujZs688y0HIczndH9HNCVw1FwyeSnPpUna-CKhjOHqzhzn126EQMyLAIMsQaLDH5a_KBGG6dKjc';   // Firebase console > Project settings > Cloud Messaging > Web Push certificates
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const pushSupported = () => ('serviceWorker' in navigator) && ('Notification' in window) && ('PushManager' in window) && !!firebase.messaging;
+    const PUSH_KEY = 'inkjection_push_token';
+    function refreshPushState() {
+        let on = false; try { on = !!localStorage.getItem(PUSH_KEY) && Notification.permission === 'granted'; } catch (e) {}
+        const b = document.getElementById('pushBtn');
+        b.classList.toggle('on', on); b.innerHTML = '<i class="fas ' + (on ? 'fa-bell' : 'fa-bell-slash') + '"></i>';
+        return on;
+    }
+    function openPushSheet() {
+        const body = document.getElementById('pushBody'), act = document.getElementById('pushAction');
+        act.style.display = ''; act.disabled = false;
+        if (isIOS && !isStandalone) {
+            body.innerHTML = 'On iPhone, notifications only work from the app on your home screen:<br><br>1. Open this page in <b>Safari</b>.<br>2. Tap the <b>Share</b> button <i class="fas fa-arrow-up-from-bracket"></i>.<br>3. Choose <b>Add to Home Screen</b>.<br>4. Open <b>Inkjection</b> from your home screen, log in and tap the bell again.';
+            act.style.display = 'none';
+        } else if (!pushSupported()) {
+            body.innerHTML = 'This browser does not support notifications. Use Chrome on Android, or the home-screen app on iPhone.';
+            act.style.display = 'none';
+        } else if (refreshPushState()) {
+            body.innerHTML = 'Notifications are <b style="color:#7be3a3">ON</b> for this device. You get a message on this phone when a customer sends a booking request — also when the app is closed.';
+            act.style.display = 'none';
+        } else if (Notification.permission === 'denied') {
+            body.innerHTML = 'Notifications are blocked for this app. Turn them on in your phone settings (Settings &gt; Notifications &gt; Inkjection), then tap the bell again.';
+            act.style.display = 'none';
+        } else {
+            body.innerHTML = 'Get a notification on this device every time a customer sends a booking request — also when the app is closed.';
+            act.innerText = 'TURN ON'; act.onclick = enablePush;
+        }
+        document.getElementById('pushModal').classList.add('active');
+    }
+    async function savePushToken() {
+        const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+        await navigator.serviceWorker.ready;
+        const token = await firebase.messaging().getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+        if (!token) throw new Error('no token');
+        await db.collection('adminTokens').doc(token).set({ uid: auth.currentUser.uid, device: navigator.userAgent.slice(0, 150), createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        let old = null; try { old = localStorage.getItem(PUSH_KEY); localStorage.setItem(PUSH_KEY, token); } catch (e) {}
+        if (old && old !== token) { try { await db.collection('adminTokens').doc(old).delete(); } catch (e) {} }
+    }
+    async function enablePush() {
+        const act = document.getElementById('pushAction');
+        if (VAPID_KEY.indexOf('__') === 0) { alert('Notifications are not configured yet (missing key).'); return; }
+        try {
+            act.disabled = true; act.innerText = 'ONE MOMENT…';
+            const perm = await Notification.requestPermission();
+            if (perm !== 'granted') { openPushSheet(); return; }
+            await savePushToken();
+            refreshPushState(); toast('<i class="fas fa-bell"></i> Notifications are on for this device');
+            document.getElementById('pushModal').classList.remove('active');
+        } catch (e) { console.error(e); alert('Could not turn on notifications: ' + (e.code || e.message)); }
+        act.disabled = false; act.innerText = 'TURN ON';
+    }
+    async function renewPushToken() {   // keeps this phone registered each time the app opens
+        try {
+            if (VAPID_KEY.indexOf('__') === 0 || !pushSupported() || Notification.permission !== 'granted' || !localStorage.getItem(PUSH_KEY)) return;
+            await savePushToken();
+        } catch (e) { console.warn('push renew', e); }
+    }
+
+    // ===== WEBSITE CONTENT (settings/site) =====
+    const SITE_DEFAULTS = {"about": {"nl": "Hoi, ik ben **Talitha**! Welkom bij **Inkjection**, mijn privéstudio waar **hygiëne** en **precisie** topprioriteiten zijn. Ik geloof dat een tatoeage meer is dan alleen inkt; het is **jouw verhaal**. Daarom besteed ik aandacht aan elk detail van je wensen en werk ik creatief samen om je ideeën naar een hoger niveau te tillen. Mijn doel is om je gelukkiger te maken dan je had verwacht, met een uniek kunstwerk waar je een leven lang trots op zult zijn.", "en": "Hi, I'm **Talitha**! Welcome to **Inkjection**, my private studio where **hygiene** and **precision** are top priorities. I believe a tattoo is more than just ink; it's **your story**. That's why I pay attention to every single detail of your wishes and collaborate creatively to elevate your ideas. My goal? To make you happier than you expected with a unique piece of art you'll be proud of for a lifetime."}, "aftercare": {"nl": "**Eerste 3-5 dagen:** Laat de folie zitten zoals geadviseerd. Was daarna voorzichtig met lauw water en neutrale zeep.\n\n**Hydratatie:** Breng 2-3x per dag een dun laagje nazorgzalf aan.\n\n**Niet doen:** Niet krabben, vermijd zwemmen, sauna en direct zonlicht voor minstens 3 weken.", "en": "**First 3-5 days:** Keep the foil as advised. Then wash gently with lukewarm water and neutral soap.\n\n**Hydration:** Apply a thin layer of aftercare ointment 2-3x a day.\n\n**Don'ts:** No scratching, avoid swimming, saunas, and direct sunlight for at least 3 weeks."}, "trust": {"nl": "5.0 — Geliefde studio in de Kempen", "en": "5.0 — Beloved studio in the Kempen"}, "heroTagline": {"nl": "Fine Line, Old School & Realism", "en": "Fine Line, Old School & Realism"}, "heroSub": {"nl": "Zandhoven • Antwerpen", "en": "Zandhoven • Antwerpen"}, "prices": {"small": {"nl": "Vanaf €80", "en": "From €80"}, "medium": {"nl": "Vanaf €120", "en": "From €120"}, "large": {"nl": "Op afspraak", "en": "On request"}}, "contact": {"email": "Inkjection.tattoo95@gmail.com", "whatsapp": "32476633794", "phoneDisplay": "+32 476 63 37 94", "address": "Torenstraat 32, 2243 Zandhoven", "instagram": "https://www.instagram.com/inkj.ection/", "tiktok": "https://www.tiktok.com/@inkjection.tattoo", "facebook": "https://www.facebook.com/share/1XPw4Fx861/"}, "announcement": {"on": false, "nl": "", "en": ""}, "booking": {"enabled": true, "monthsAhead": 2, "largeWeekendOnly": true}, "gift": {"amounts": [50, 100, 250]}, "theme": {"halloween": true}};
+    const SITE_FORM = [
+        { t: 'Announcement bar', ic: 'fa-bullhorn', f: [
+            { k: 'announcement.on', type: 'toggle', label: 'Show a message at the top of the website' },
+            { k: 'announcement', type: 'i18n', multi: true, label: 'Message', hint: 'e.g. “Holiday from 1 to 15 August”' } ] },
+        { t: 'Top of the page', ic: 'fa-house', f: [
+            { k: 'heroTagline', type: 'i18n', label: 'Styles line' },
+            { k: 'heroSub', type: 'i18n', label: 'Location line' },
+            { k: 'trust', type: 'i18n', label: 'Rating line' } ] },
+        { t: 'About me', ic: 'fa-user', f: [
+            { k: 'about', type: 'i18n', multi: true, label: 'Text', hint: 'Put **two stars** around words to make them bold.' } ] },
+        { t: 'Prices', ic: 'fa-euro-sign', f: [
+            { k: 'prices.small', type: 'i18n', label: 'Small (0-8 cm)' },
+            { k: 'prices.medium', type: 'i18n', label: 'Medium (8-15 cm)' },
+            { k: 'prices.large', type: 'i18n', label: 'Large (15+ cm)' } ] },
+        { t: 'Contact & social media', ic: 'fa-address-book', f: [
+            { k: 'contact.email', type: 'text', label: 'E-mail' },
+            { k: 'contact.whatsapp', type: 'text', label: 'WhatsApp number', hint: 'Digits only with country code, e.g. 32476633794' },
+            { k: 'contact.phoneDisplay', type: 'text', label: 'Phone as shown on the site' },
+            { k: 'contact.address', type: 'text', label: 'Address', hint: 'The map follows the address.' },
+            { k: 'contact.instagram', type: 'text', label: 'Instagram link', hint: 'Empty = hide the icon' },
+            { k: 'contact.tiktok', type: 'text', label: 'TikTok link', hint: 'Empty = hide the icon' },
+            { k: 'contact.facebook', type: 'text', label: 'Facebook link', hint: 'Empty = hide the icon' } ] },
+        { t: 'Booking', ic: 'fa-calendar-check', f: [
+            { k: 'booking.enabled', type: 'toggle', label: 'Online booking form (off = customers go to WhatsApp)' },
+            { k: 'booking.largeWeekendOnly', type: 'toggle', label: 'Large tattoos only on Saturday & Sunday' },
+            { k: 'booking.monthsAhead', type: 'number', label: 'How many months ahead can customers book?', hint: 'From the 20th of the month one extra month opens.' } ] },
+        { t: 'Gift voucher', ic: 'fa-gift', f: [
+            { k: 'gift.amounts', type: 'list', label: 'Amounts (€)', hint: 'Separate with commas, e.g. 50, 100, 250' } ] },
+        { t: 'Aftercare', ic: 'fa-hand-holding-medical', f: [
+            { k: 'aftercare', type: 'i18n', multi: true, label: 'Aftercare text', hint: 'Put **two stars** around words to make them bold.' } ] },
+        { t: 'Theme', ic: 'fa-wand-magic-sparkles', f: [
+            { k: 'theme.halloween', type: 'toggle', label: 'Halloween decorations (skeleton, spider, pumpkin…)' } ] }
+    ];
+    let siteData = null, siteDirty = false;
+    const getPath = (o, path) => path.split('.').reduce((x, k) => (x && x[k] !== undefined) ? x[k] : undefined, o);
+    function setPath(o, path, v) { const ks = path.split('.'); let x = o; ks.slice(0, -1).forEach(k => { if (typeof x[k] !== 'object' || x[k] === null) x[k] = {}; x = x[k]; }); x[ks[ks.length - 1]] = v; }
+    async function loadSiteForm(force) {
+        if (siteData && !force) return;
+        let saved = {};
+        try { const d = await db.collection('settings').doc('site').get(); if (d.exists) saved = d.data(); }
+        catch (e) { toast('Could not load website content: ' + (e.code || e.message)); }
+        siteData = JSON.parse(JSON.stringify(SITE_DEFAULTS));
+        (function merge(dst, src) { Object.keys(src).forEach(k => { if (src[k] && typeof src[k] === 'object' && !Array.isArray(src[k])) { if (typeof dst[k] !== 'object' || !dst[k]) dst[k] = {}; merge(dst[k], src[k]); } else dst[k] = src[k]; }); })(siteData, saved);
+        renderSiteForm(); setDirty(false);
+    }
+    function setDirty(v) { siteDirty = v; document.getElementById('siteSaveBar').classList.toggle('show', v); }
+    function renderSiteForm() {
+        const box = document.getElementById('siteForm');
+        box.innerHTML = SITE_FORM.map((sec, si) => '<details class="site-card"' + (si === 0 ? ' open' : '') + '><summary><i class="fas ' + sec.ic + ' ic"></i>' + esc(sec.t) + '<i class="fas fa-chevron-down chev"></i></summary><div class="body">' +
+            sec.f.map(f => {
+                const v = getPath(siteData, f.k), id = 'sf_' + f.k.replace(/\./g, '_');
+                if (f.type === 'toggle') return '<div class="switch-row"><span>' + esc(f.label) + '</span><label class="switch"><input type="checkbox" data-k="' + f.k + '" data-type="toggle"' + (v !== false ? ' checked' : '') + '><span></span></label></div>';
+                let inner;
+                if (f.type === 'i18n') {
+                    const tag = f.multi ? 'textarea' : 'input type="text"', close = f.multi ? '</textarea>' : '';
+                    inner = '<div class="lang-pair">' + ['nl', 'en'].map(L => {
+                        const val = esc((v && v[L]) || '');
+                        return '<div class="lang-in"><em>' + L.toUpperCase() + '</em>' + (f.multi ? '<textarea rows="5" data-k="' + f.k + '.' + L + '">' + val + '</textarea>' : '<input type="text" data-k="' + f.k + '.' + L + '" value="' + val + '">') + '</div>';
+                    }).join('') + '</div>';
+                } else if (f.type === 'list') inner = '<input type="text" data-k="' + f.k + '" data-type="list" value="' + esc((v || []).join(', ')) + '">';
+                else if (f.type === 'number') inner = '<input type="number" min="1" max="12" data-k="' + f.k + '" data-type="number" value="' + esc(v) + '">';
+                else inner = '<input type="text" data-k="' + f.k + '" value="' + esc(v || '') + '">';
+                return '<div class="fld"><label>' + esc(f.label) + '</label>' + inner + (f.hint ? '<div class="hint">' + esc(f.hint) + '</div>' : '') + '</div>';
+            }).join('') + '</div></details>').join('');
+        box.querySelectorAll('[data-k]').forEach(inp => {
+            const ev = inp.type === 'checkbox' ? 'change' : 'input';
+            inp.addEventListener(ev, () => {
+                let v = inp.type === 'checkbox' ? inp.checked : inp.value;
+                if (inp.dataset.type === 'list') v = inp.value.split(/[,;\s]+/).map(x => parseInt(x, 10)).filter(x => x > 0);
+                if (inp.dataset.type === 'number') v = Math.max(1, Math.min(12, parseInt(inp.value, 10) || 2));
+                setPath(siteData, inp.dataset.k, v); setDirty(true);
+            });
+        });
+    }
+    async function saveSiteForm() {
+        const c = siteData.contact || {};
+        c.whatsapp = String(c.whatsapp || '').replace(/\D/g, '');
+        if (c.whatsapp && c.whatsapp.length < 9) { alert('The WhatsApp number looks too short. Use the country code, e.g. 32476633794.'); return; }
+        try {
+            await db.collection('settings').doc('site').set(Object.assign({}, siteData, { updatedAt: firebase.firestore.FieldValue.serverTimestamp() }));
+            setDirty(false); toast('<i class="fas fa-check"></i> Saved. The website is updated.');
+        } catch (e) { alert('Could not save: ' + (e.code || e.message)); }
+    }
+    window.addEventListener('beforeunload', e => { if (siteDirty) { e.preventDefault(); e.returnValue = ''; } });
+
+    // ===== REVIEWS =====
+    const SEED_REVIEWS = [{"name": "Kyra Derveaux", "text": "Samen met mijn zus en mama een tattoo laten zetten en we hebben hier een héél aangename ervaring gehad! Ze nam echt de tijd om alles goed te bespreken en plaatste de tattoo met veel zorg en precisie. De omgeving was super fijn en rustig. Heel tevreden over de werking én natuurlijk over de prachtige tattoo! Zeker een aanrader!", "stars": 5, "photos": []}, {"name": "Sandra Roerbert", "text": "Ik ben samen met mijn dochters een tattoo gaan zetten en het was een heel fijne ervaring. De uitleg was duidelijk en ik kreeg goed advies over de kleuren van de tattoo. Ze nam echt de tijd voor ons. De tattoo is prachtig geworden en ik ging met een heel gelukkig gevoel naar huis. Zeker een aanrader.", "stars": 5, "photos": []}, {"name": "Wally Goovaerts", "text": "Zeer vriendelijk! Ik heb er mijn eerste tattoo laten zetten, en nu ook mijn tweede! Haar werk is perfectionistisch & hygiënisch, ze houdt rekening met wat je wil. Gewoon top!", "stars": 5, "photos": []}, {"name": "Ilse Van Dijken", "text": "Al meerdere kleine en grote tatoeages hier laten zetten en altijd top! Ze neemt veel tijd om je ontwerp eigen te maken en ze werkt heel netjes. Nog altijd super blij met alles wat ze gezet heeft!", "stars": 5, "photos": []}, {"name": "Levy Van Dyck", "text": "Zeer mooi ontwerp gekregen, zeer vriendelijk en zeer goed gedaan. Ben heel tevreden.", "stars": 5, "photos": []}, {"name": "Rani Derveaux", "text": "2de tattoo gezet bij haar en weer super tevreden. Heel vriendelijke dame en doet haar werk heel goed!", "stars": 5, "photos": []}, {"name": "Liena Moorkens", "text": "Vanaf het eerste contact tot het plaatsen van de tattoo was echt geweldig. Vragen werden steeds meteen beantwoord en mogelijkheden tot aanpassingen ook meteen doorgevoerd. Ik ben 100% fan en zal zeker in de toekomst nog bij haar op de tattootafel liggen.", "stars": 5, "photos": []}, {"name": "Tim Jespers", "text": "Goeie en vriendelijke service. Eerlijke prijs en open communicatie. Echt een aanrader!", "stars": 5, "photos": []}, {"name": "Eline Van Stijvoort", "text": "Supper blij met men tattoo. Altijd vriendelijk en net. Heel goed gezet.", "stars": 5, "photos": []}, {"name": "Jorn Vercammen", "text": "Mijn eerste old school tattoo laten zetten, super vriendelijke tattoo artisten, super mooi tattoo, zeker aanterijden!", "stars": 5, "photos": []}, {"name": "Taner Güneş", "text": "Very clean and hygienic tattoo artist, very kind and does exactly what you want, I definitely recommend you to go!", "stars": 5, "photos": []}, {"name": "Emma Van uytven", "text": "Super fijne ervaring! Buiten gegaan met fantastisch mooie tattoo ter ere van mijn overleden grootvader en een heel fijne babbel! 1000x Dank! Een heel eerlijke prijs!", "stars": 5, "photos": ["https://lh3.googleusercontent.com/grass-cs/ACvplmPiPUAjd7Bahbj0uWjGr-5BlhIqQoLmptuBUwloWpRWJ9TkuX1wC8jRg9F0GEkysC0BAMaSu2ghjCf41Y1uiOwW-uwA0IKqJDhnzbRpgfUcJgDBtCatUCoY-p0AGvF870EgzVd-X5eb4cAu=s3072-w3072-h1460-rw", "https://lh3.googleusercontent.com/grass-cs/ACvplmMrC0GO9OrZa8OnXg8JfMiFXtEAQzVGPa8WovHu0hHfP05FM2Q4NWGg2N_uoTUB0PIJ5MzmweY41JJzgmSyZDSFleJV2ADeS8UIwNF4Mfh43Wq92wg_7i9PiMSNC-WjR7D_luEHNIyqMZxf=s3072-w3072-h1460-rw"]}];
+    let reviews = [], rvStars = 5, rvEditId = null;
+    function renderStarPick() {
+        document.getElementById('rv-stars').innerHTML = [1,2,3,4,5].map(n => '<button type="button" class="' + (n <= rvStars ? 'on' : '') + '" onclick="rvStars=' + n + ';renderStarPick()">&#9733;</button>').join('');
+    }
+    async function loadReviews() {
+        renderStarPick();
+        try {
+            const sn = await db.collection('reviews').get();
+            reviews = []; sn.forEach(d => reviews.push(Object.assign({ id: d.id }, d.data())));
+            reviews.sort((a, b) => (a.order || 0) - (b.order || 0));
+        } catch (e) { toast('Could not load reviews: ' + (e.code || e.message)); }
+        document.getElementById('reviewImport').innerHTML = reviews.length ? '' :
+            '<div class="media-box" style="text-align:center"><div class="empty-note" style="margin-bottom:12px">The website still shows its ' + SEED_REVIEWS.length + ' built-in reviews. Import them once so you can manage them here.</div><button class="mini-btn accent" onclick="importReviews()"><i class="fas fa-download"></i> IMPORT ' + SEED_REVIEWS.length + ' REVIEWS</button></div>';
+        document.getElementById('reviewList').innerHTML = reviews.map((r, i) =>
+            '<div class="booking-card"><div class="bk-top"><div><div class="bk-name">' + esc(r.name) + '</div><div class="rv-stars">' + '&#9733;'.repeat(Math.max(1, Math.min(5, r.stars || 5))) + '</div></div>' +
+            '<div style="display:flex;gap:6px">' +
+            (i > 0 ? '<button class="mini-btn" title="Move up" onclick="moveReview(' + i + ',-1)"><i class="fas fa-arrow-up"></i></button>' : '') +
+            (i < reviews.length - 1 ? '<button class="mini-btn" title="Move down" onclick="moveReview(' + i + ',1)"><i class="fas fa-arrow-down"></i></button>' : '') +
+            '</div></div><div class="bk-desc" style="margin-top:0">' + esc(r.text) + '</div>' +
+            ((r.photos || []).length ? '<div class="bk-photos">' + r.photos.map(u => '<img src="' + esc(u) + '" alt="" onclick="openPhoto(this.src)">').join('') + '</div>' : '') +
+            '<div class="bk-actions"><button class="mini-btn accent" onclick="editReview(\'' + r.id + '\')"><i class="fas fa-pen"></i> EDIT</button><button class="mini-btn danger" onclick="deleteReview(\'' + r.id + '\')"><i class="fas fa-trash"></i> DELETE</button></div></div>').join('');
+    }
+    function resetReviewForm() {
+        rvEditId = null; rvStars = 5; renderStarPick();
+        ['rv-name', 'rv-text', 'rv-photos'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('rv-save').innerText = 'ADD REVIEW';
+        document.getElementById('rv-cancel').style.display = 'none';
+    }
+    function editReview(id) {
+        const r = reviews.find(x => x.id === id); if (!r) return;
+        rvEditId = id; rvStars = r.stars || 5; renderStarPick();
+        document.getElementById('rv-name').value = r.name || '';
+        document.getElementById('rv-text').value = r.text || '';
+        document.getElementById('rv-photos').value = (r.photos || []).join('\n');
+        document.getElementById('rv-save').innerText = 'SAVE CHANGES';
+        document.getElementById('rv-cancel').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    async function saveReview() {
+        const name = document.getElementById('rv-name').value.trim(), text = document.getElementById('rv-text').value.trim();
+        const photos = document.getElementById('rv-photos').value.split(/\s+/).map(x => x.trim()).filter(x => /^https?:\/\//.test(x));
+        if (!name || !text) { alert('Fill in a name and the review text.'); return; }
+        const data = { name: name, text: text, stars: rvStars, photos: photos };
+        try {
+            if (rvEditId) await db.collection('reviews').doc(rvEditId).update(data);
+            else { data.order = (reviews.length ? Math.min.apply(null, reviews.map(r => r.order || 0)) : 0) - 1; data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await db.collection('reviews').add(data); }
+            toast('<i class="fas fa-check"></i> Review saved'); resetReviewForm(); loadReviews();
+        } catch (e) { alert('Could not save: ' + (e.code || e.message)); }
+    }
+    async function deleteReview(id) {
+        const r = reviews.find(x => x.id === id);
+        if (!confirm('Delete the review of ' + (r ? r.name : '') + '?')) return;
+        try { await db.collection('reviews').doc(id).delete(); loadReviews(); } catch (e) { alert('Could not delete: ' + (e.code || e.message)); }
+    }
+    async function moveReview(i, dir) {
+        const j = i + dir; if (j < 0 || j >= reviews.length) return;
+        const list = reviews.slice(); const tmp = list[i]; list[i] = list[j]; list[j] = tmp;
+        try { const b = db.batch(); list.forEach((r, k) => b.update(db.collection('reviews').doc(r.id), { order: k })); await b.commit(); loadReviews(); }
+        catch (e) { alert('Could not reorder: ' + (e.code || e.message)); }
+    }
+    async function importReviews() {
+        try { const b = db.batch(); SEED_REVIEWS.forEach((r, k) => b.set(db.collection('reviews').doc(), Object.assign({}, r, { order: k }))); await b.commit(); toast('<i class="fas fa-check"></i> Reviews imported'); loadReviews(); }
+        catch (e) { alert('Could not import: ' + (e.code || e.message)); }
+    }
+
     // ----- bookings list -----
     function updatePendingBadge() {
         const n = appointments.filter(a => a.status === 'pending').length;
         const b = document.getElementById('pendingBadge');
         b.textContent = n; b.classList.toggle('show', n > 0);
+        document.title = (n ? '(' + n + ') ' : '') + 'Inkjection | Admin';
     }
     function setBookingFilter(f, btn) {
         bookingFilter = f;
@@ -684,8 +1048,27 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
                 '<div class="bk-line"><i class="fas fa-ruler"></i> ' + esc(SIZE_LABEL[a.size] || a.size) + (a.placement ? ' &middot; ' + esc(a.placement) : '') + '</div>' +
                 (created ? '<div class="bk-line"><i class="fas fa-clock"></i> Requested ' + esc(created) + (a.lang ? ' &middot; ' + esc(a.lang.toUpperCase()) : '') + '</div>' : '') +
                 (a.description ? '<div class="bk-desc">' + esc(a.description) + '</div>' : '') +
+                (a.hasPhotos ? '<div class="bk-photos" data-photos="' + a.id + '"><span class="loading">Loading photos…</span></div>' : '') +
                 '<div class="bk-actions">' + actions + '</div></div>';
         }).join('');
+        el.querySelectorAll('[data-photos]').forEach(box => fillPhotos(box, box.dataset.photos));
+    }
+    const photoCache = {};
+    async function fillPhotos(box, id) {
+        try {
+            if (!photoCache[id]) { const d = await db.collection('appointmentPhotos').doc(id).get(); photoCache[id] = d.exists ? (d.data().photos || []) : []; }
+            box.innerHTML = photoCache[id].length ? '' : '<span class="loading">No photos found.</span>';
+            photoCache[id].forEach(src => { const im = document.createElement('img'); im.src = src; im.alt = ''; im.onclick = () => openPhoto(src); box.appendChild(im); });
+        } catch (e) { box.innerHTML = '<span class="loading">Photos could not be loaded.</span>'; }
+    }
+    function openPhoto(src) { document.getElementById('photoViewerImg').src = src; document.getElementById('photoViewer').classList.add('active'); }
+    function renderUpcoming() {
+        const el = document.getElementById('upcomingList'); if (!el) return;
+        const t = todayStr();
+        const list = appointments.filter(a => a.status === 'confirmed' && a.date >= t)
+            .sort((x, y) => (x.date + (x.time || '')).localeCompare(y.date + (y.time || ''))).slice(0, 6);
+        el.innerHTML = list.length ? list.map(a => '<div class="day-appt" style="cursor:pointer" onclick="openDay(\'' + a.date + '\')"><span><b>' + esc(niceDate(a.date)) + '</b>' + (a.time ? ' &middot; ' + esc(a.time) : '') + '<br><span style="color:var(--text-dim)">' + esc(a.name) + ' &middot; ' + esc(SIZE_LABEL[a.size] || a.size) + '</span></span><span class="bk-status confirmed">OK</span></div>').join('')
+            : '<div class="empty-note" style="padding:4px 2px">No confirmed appointments yet.</div>';
     }
     const findAppt = id => appointments.find(a => a.id === id);
     async function freeSlot(a) {
@@ -720,7 +1103,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
     async function deleteBooking(id) {
         const a = findAppt(id); if (!a) return;
         if (!confirm('Permanently delete the request of ' + a.name + '? This cannot be undone.')) return;
-        try { await freeSlot(a); await db.collection('appointments').doc(id).delete(); }
+        try { await freeSlot(a); if (a.hasPhotos) await db.collection('appointmentPhotos').doc(id).delete(); await db.collection('appointments').doc(id).delete(); }
         catch (e) { alert('Error: ' + (e.code || e.message)); return; }
         loadCalendarData();
     }
@@ -746,15 +1129,25 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         renderCalendar();
     }
 
-    function switchTab(id, btn) {
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        btn.classList.add('active');
-        if(id === 'tab-gal') fetchGallery();
-        if(id === 'tab-designs') fetchAdminDesigns('designs');
-        if(id === 'tab-trick') fetchAdminDesigns('trick');
-        if(id === 'tab-book' || id === 'tab-cal') loadCalendarData();
+    let currentTab = (location.hash === '#requests') ? 'tab-book' : 'tab-cal', currentMedia = 'tab-gal';
+    const TAB_TITLES = { 'tab-cal': 'Agenda', 'tab-book': 'Requests', 'tab-site': 'Website', 'tab-media': 'Media', 'tab-reviews': 'Reviews' };
+    function switchTab(id) {
+        currentTab = id;
+        document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === id));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+        document.getElementById('screenTitle').innerText = TAB_TITLES[id] || '';
+        window.scrollTo(0, 0);
+        if (id === 'tab-media') showMedia(currentMedia);
+        if (id === 'tab-site') loadSiteForm();
+        if (id === 'tab-reviews') loadReviews();
+    }
+    function showMedia(id) {
+        currentMedia = id;
+        document.querySelectorAll('.media-sub').forEach(s => s.classList.toggle('active', s.id === id));
+        document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.m === id));
+        if (id === 'tab-gal') fetchGallery();
+        if (id === 'tab-designs') fetchAdminDesigns('designs');
+        if (id === 'tab-trick') fetchAdminDesigns('trick');
     }
 
     // --- GALLERY WITH DRAG & DROP ---
