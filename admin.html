@@ -139,6 +139,66 @@
         .day.today { border-color: var(--accent-warm); color: var(--accent-warm); font-weight: 800; background: linear-gradient(135deg, rgba(217,167,88,0.15), rgba(217,167,88,0.05)); }
         .day.booked { background: rgba(255, 59, 92, 0.15); border-color: var(--red); color: #ff7a90; font-weight: 700; }
         .day.other-month { opacity: 0; pointer-events: none; }
+        .day { position: relative; flex-direction: column; gap: 2px; }
+        .day .day-dots { display: flex; gap: 3px; height: 5px; }
+        .dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; }
+        .cal-legend .dot { width: 8px; height: 8px; }
+        .dot.slot { background: var(--accent-soft); }
+        .dot.taken { background: var(--accent-warm); }
+        .day .req-badge { position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--accent-warm); color: #150c22; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+        .cal-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 16px; font-size: 11px; color: var(--text-dim); }
+        .cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .cal-legend .sq { width: 10px; height: 10px; border-radius: 3px; background: rgba(255,59,92,0.35); border: 1px solid var(--red); }
+        .cal-tip { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 10px; }
+
+        /* day sheet */
+        .day-sheet { max-height: 88vh; overflow-y: auto; }
+        .day-sheet .sheet-sub { font-size: 12px; color: var(--text-dim); margin: -8px 0 16px; }
+        .day-status { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 14px; background: var(--card2); border: 1px solid var(--card-border); margin-bottom: 16px; font-size: 13px; }
+        .day-status b.open { color: #7be3a3; } .day-status b.closed { color: #ff7a90; }
+        .mini-btn { padding: 9px 14px; border-radius: 999px; border: 1px solid var(--card-border); background: var(--card); color: var(--text); font: 700 11px var(--font-body); letter-spacing: 1px; cursor: pointer; white-space: nowrap; }
+        .mini-btn.danger { border-color: var(--red); color: #ff7a90; background: rgba(255,59,92,0.12); }
+        .mini-btn.ok { border-color: #3ecf7a; color: #7be3a3; background: rgba(62,207,122,0.12); }
+        .mini-btn.accent { border-color: var(--accent); color: var(--accent-soft); background: var(--accent-glow); }
+        .mini-btn.wa { border-color: #25D366; color: #5ee391; background: rgba(37,211,102,0.12); }
+        .mini-btn:active { transform: scale(.96); }
+        .sheet-label { font-size: 10px; letter-spacing: 2px; color: var(--accent-soft); font-weight: 800; text-transform: uppercase; margin: 6px 0 8px; display: block; }
+        .time-chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 20px; }
+        .time-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 8px 8px 14px; border-radius: 999px; background: var(--accent-glow); border: 1px solid var(--accent); font-weight: 800; font-size: 14px; }
+        .time-chip.taken { background: rgba(217,167,88,0.15); border-color: var(--accent-warm); }
+        .time-chip small { font-size: 9px; letter-spacing: 1px; color: var(--accent-warm); font-weight: 800; }
+        .time-chip button { width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(0,0,0,0.35); color: #fff; cursor: pointer; font-size: 12px; line-height: 1; }
+        .empty-note { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+        .add-time-row { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+        .add-time-row input[type="time"] { flex: 1; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card2); color: #fff; font: 600 15px var(--font-body); color-scheme: dark; outline: none; }
+        .preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+        .day-appts { display: flex; flex-direction: column; gap: 8px; }
+        .day-appt { padding: 10px 12px; border-radius: 12px; background: var(--card2); border: 1px solid var(--card-border); font-size: 12px; display: flex; justify-content: space-between; gap: 8px; }
+
+        /* bookings */
+        .tab-btn { position: relative; }
+        .tab-badge { position: absolute; top: -6px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent-warm); color: #150c22; font-size: 10px; font-weight: 800; display: none; align-items: center; justify-content: center; }
+        .tab-badge.show { display: flex; }
+        .filter-row { display: flex; gap: 6px; margin-bottom: 16px; }
+        .filter-btn { flex: 1; padding: 10px 4px; border-radius: 999px; border: 1px solid var(--card-border); background: var(--card); color: var(--text-dim); font: 700 11px var(--font-body); letter-spacing: 1px; cursor: pointer; }
+        .filter-btn.active { border-color: var(--accent); color: #fff; background: var(--accent-glow); }
+        .booking-list { display: flex; flex-direction: column; gap: 12px; }
+        .booking-card { background: var(--card); border: 1px solid var(--card-border); border-radius: 18px; padding: 16px; }
+        .booking-card.pending { border-color: rgba(217,167,88,0.5); }
+        .bk-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+        .bk-when { font-family: var(--font-display); font-size: 20px; line-height: 1.1; }
+        .bk-when small { display: block; font-family: var(--font-body); font-size: 11px; color: var(--text-dim); letter-spacing: 1px; margin-top: 3px; }
+        .bk-status { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+        .bk-status.pending { background: rgba(217,167,88,0.15); color: var(--accent-warm); }
+        .bk-status.confirmed { background: rgba(62,207,122,0.15); color: #7be3a3; }
+        .bk-status.rejected, .bk-status.cancelled { background: rgba(255,59,92,0.12); color: #ff7a90; }
+        .bk-name { font-weight: 800; font-size: 15px; }
+        .bk-line { font-size: 12px; color: var(--text-soft); margin-top: 4px; word-break: break-word; }
+        .bk-line i { width: 16px; color: var(--accent-soft); }
+        .bk-desc { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--card2); font-size: 13px; line-height: 1.5; color: var(--text-soft); white-space: pre-wrap; word-break: break-word; }
+        .bk-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+        .bk-actions .mini-btn { flex: 1; }
+        .list-empty { text-align: center; padding: 40px 10px; color: var(--text-dim); font-size: 13px; }
         .media-box { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid var(--card-border); margin-bottom: 25px; }
         .external-link { display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--grad); color: #150c22; text-decoration: none; padding: 15px; border-radius: 60px; font-weight: 800; font-size: 13px; margin-bottom: 20px; letter-spacing: 2px; }
         .gallery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -230,6 +290,7 @@
     </div>
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('tab-cal', this)"><i class="fas fa-calendar-days"></i>CALENDAR</button>
+        <button class="tab-btn" onclick="switchTab('tab-book', this)"><i class="fas fa-inbox"></i>BOOKINGS<span class="tab-badge" id="pendingBadge"></span></button>
         <button class="tab-btn" onclick="switchTab('tab-gal', this)"><i class="fas fa-images"></i>GALLERY</button>
         <button class="tab-btn" onclick="switchTab('tab-designs', this)"><i class="fas fa-palette"></i>DESIGNS</button>
         <button class="tab-btn" onclick="switchTab('tab-trick', this)"><i class="fas fa-skull"></i>TRICK</button>
@@ -243,6 +304,22 @@
             <button onclick="changeMonth(1)" style="background:none; border:none; color:#fff; cursor:pointer;"><i class="fas fa-chevron-right"></i></button>
         </div>
         <div class="days-grid" id="adminDays"></div>
+        <div class="cal-legend">
+            <span><i class="dot slot" style="display:inline-block"></i>Times set</span>
+            <span><i class="dot taken" style="display:inline-block"></i>Time taken</span>
+            <span><i class="sq"></i>Closed</span>
+        </div>
+        <div class="cal-tip">Tap a day to add times or close it.</div>
+    </div>
+
+    <!-- BOOKINGS TAB -->
+    <div id="tab-book" class="section">
+        <div class="filter-row">
+            <button class="filter-btn active" data-f="pending" onclick="setBookingFilter('pending', this)">NEW</button>
+            <button class="filter-btn" data-f="confirmed" onclick="setBookingFilter('confirmed', this)">CONFIRMED</button>
+            <button class="filter-btn" data-f="other" onclick="setBookingFilter('other', this)">PAST / OTHER</button>
+        </div>
+        <div class="booking-list" id="bookingList"></div>
     </div>
 
     <!-- GALLERY TAB -->
@@ -299,7 +376,39 @@
     </div>
 
     <div class="hw-footer-ghost"><div id="hwGhostAnim"></div></div>
-    <button class="logout-btn" onclick="location.reload()">LOGOUT</button>
+    <button class="logout-btn" onclick="doLogout()">LOGOUT</button>
+</div>
+
+<!-- DAY MODAL (times + open/close) -->
+<div class="edit-modal-overlay" id="dayModal" onclick="if(event.target===this)closeDay()">
+    <div class="edit-modal day-sheet">
+        <h3 id="dayTitle">DAY</h3>
+        <div class="sheet-sub" id="daySub"></div>
+        <div class="day-status">
+            <span>Status: <b id="dayStatusTxt"></b></span>
+            <button class="mini-btn" id="dayToggleBtn" onclick="toggleDayBlock()"></button>
+        </div>
+        <div id="dayTimesWrap">
+            <span class="sheet-label">Available times</span>
+            <div class="time-chips" id="dayChips"></div>
+            <div class="add-time-row">
+                <input type="time" id="dayTimeInput" step="900" value="10:00">
+                <button class="mini-btn accent" onclick="addDayTime(document.getElementById('dayTimeInput').value)"><i class="fas fa-plus"></i> ADD</button>
+            </div>
+            <div class="preset-row">
+                <button class="mini-btn" onclick="addDayTime('10:00')">10:00</button>
+                <button class="mini-btn" onclick="addDayTime('12:00')">12:00</button>
+                <button class="mini-btn" onclick="addDayTime('14:00')">14:00</button>
+                <button class="mini-btn" onclick="addDayTime('16:00')">16:00</button>
+                <button class="mini-btn" onclick="addDayTime('18:00')">18:00</button>
+            </div>
+        </div>
+        <div id="dayApptWrap" style="margin-top:18px; display:none;">
+            <span class="sheet-label">Requests this day</span>
+            <div class="day-appts" id="dayAppts"></div>
+        </div>
+        <div class="btn-row"><button class="edit-save" onclick="closeDay()">DONE</button></div>
+    </div>
 </div>
 
 <!-- EDIT DESIGN MODAL (shared by DESIGNS and TRICK) -->
@@ -409,38 +518,226 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         }
     });
 
-    async function loadBlockedDates() {
-        const snap = await db.collection("blockedDays").get();
-        blockedDates.clear();
-        snap.forEach(doc => blockedDates.add(doc.id));
-        renderCalendar();
+    // ===== CALENDAR + BOOKINGS DATA =====
+    let daySlots = {};        // '2026-10-21' -> ['10:00','14:00']
+    let takenSlots = {};      // '2026-10-21' -> Set('10:00')
+    let appointments = [];    // [{id, ...data}]
+    let bookingFilter = 'pending';
+    let openDayStr = null;
+
+    const pad2 = n => String(n).padStart(2, '0');
+    const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const todayStr = () => realToday.getFullYear() + '-' + pad2(realToday.getMonth()+1) + '-' + pad2(realToday.getDate());
+    function niceDate(ds) {
+        const [y,m,d] = ds.split('-').map(Number);
+        return new Date(y, m-1, d).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    const SIZE_LABEL = { small: 'Small (0-8cm)', medium: 'Medium (8-15cm)', large: 'Large (15+cm)' };
+
+    async function loadBlockedDates() { return loadCalendarData(); }
+    async function loadCalendarData() {
+        try {
+            const [bs, sl, bk, ap] = await Promise.all([
+                db.collection('blockedDays').get(),
+                db.collection('slots').get(),
+                db.collection('bookedSlots').get(),
+                db.collection('appointments').get()
+            ]);
+            blockedDates.clear(); bs.forEach(d => blockedDates.add(d.id));
+            daySlots = {}; sl.forEach(d => { daySlots[d.id] = (d.data().times || []).slice().sort(); });
+            takenSlots = {}; bk.forEach(d => { const x = d.data(); (takenSlots[x.date] = takenSlots[x.date] || new Set()).add(x.time); });
+            appointments = []; ap.forEach(d => appointments.push(Object.assign({ id: d.id }, d.data())));
+        } catch (e) { console.error(e); alert('Could not load calendar data: ' + (e.code || e.message)); }
+        renderCalendar(); renderBookings(); updatePendingBadge();
+        if (openDayStr) renderDaySheet();
     }
 
     function renderCalendar() {
         const grid = document.getElementById('adminDays');
         const months = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
         document.getElementById('monthDisplay').innerText = months[currentMonth] + ' ' + currentYear;
-        grid.innerHTML = "";
         const firstDay = new Date(currentYear, currentMonth, 1).getDay();
         const shift = (firstDay === 0 ? 6 : firstDay - 1);
         const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
-        for(let i=0; i<shift; i++) grid.innerHTML += '<div class="day other-month"></div>';
-        for(let d=1; d<=totalDays; d++) {
+        let html = '';
+        for (let i = 0; i < shift; i++) html += '<div class="day other-month"></div>';
+        for (let d = 1; d <= totalDays; d++) {
             const thisDate = new Date(currentYear, currentMonth, d);
-            const dateStr = currentYear + '-' + (currentMonth+1).toString().padStart(2,'0') + '-' + d.toString().padStart(2,'0');
-            const isBooked = blockedDates.has(dateStr);
+            const ds = currentYear + '-' + pad2(currentMonth+1) + '-' + pad2(d);
             const isPast = thisDate < realToday;
             const isToday = thisDate.getTime() === realToday.getTime();
-            grid.innerHTML += '<div class="day ' + (isPast?'past':'') + ' ' + (isToday?'today':'') + ' ' + (isBooked?'booked':'') + '" onclick="' + (!isPast ? "toggleDate('" + dateStr + "', " + isBooked + ")" : '') + '">' + d + '</div>';
+            const times = daySlots[ds] || [];
+            const taken = takenSlots[ds] || new Set();
+            const pending = appointments.filter(a => a.date === ds && a.status === 'pending').length;
+            let dots = '';
+            times.slice(0, 4).forEach(t => { dots += '<i class="dot ' + (taken.has(t) ? 'taken' : 'slot') + '"></i>'; });
+            html += '<div class="day ' + (isPast?'past ':'') + (isToday?'today ':'') + (blockedDates.has(ds)?'booked':'') + '"' +
+                    (isPast ? '' : ' onclick="openDay(\'' + ds + '\')"') + '>' + d +
+                    '<span class="day-dots">' + dots + '</span>' +
+                    (pending ? '<span class="req-badge">' + pending + '</span>' : '') + '</div>';
         }
+        grid.innerHTML = html;
     }
 
-    async function toggleDate(dateStr, currentlyBooked) {
-        if(confirm('Are you sure you want to ' + (currentlyBooked ? 'OPEN' : 'BLOCK') + ' ' + dateStr + '?')) {
-            const ref = db.collection("blockedDays").doc(dateStr);
-            if(currentlyBooked) await ref.delete(); else await ref.set({status: 'booked'});
-            loadBlockedDates();
+    // ----- day sheet -----
+    function openDay(ds) { openDayStr = ds; renderDaySheet(); document.getElementById('dayModal').classList.add('active'); }
+    function closeDay() { openDayStr = null; document.getElementById('dayModal').classList.remove('active'); }
+    function renderDaySheet() {
+        const ds = openDayStr; if (!ds) return;
+        const blocked = blockedDates.has(ds);
+        const times = daySlots[ds] || [];
+        const taken = takenSlots[ds] || new Set();
+        document.getElementById('dayTitle').innerText = niceDate(ds).toUpperCase();
+        document.getElementById('daySub').innerText = blocked ? 'Customers cannot book this day.'
+            : (times.length ? 'Customers choose one of these times.' : 'No times set: customers request the day, you propose a time.');
+        const st = document.getElementById('dayStatusTxt');
+        st.innerText = blocked ? 'CLOSED' : 'OPEN'; st.className = blocked ? 'closed' : 'open';
+        const tb = document.getElementById('dayToggleBtn');
+        tb.innerText = blocked ? 'OPEN DAY' : 'CLOSE DAY'; tb.className = 'mini-btn ' + (blocked ? 'ok' : 'danger');
+        document.getElementById('dayTimesWrap').style.display = blocked ? 'none' : 'block';
+        document.getElementById('dayChips').innerHTML = times.length ? times.map(t =>
+            '<span class="time-chip ' + (taken.has(t) ? 'taken' : '') + '">' + t + (taken.has(t) ? ' <small>BOOKED</small>' : '') +
+            '<button title="Remove" onclick="removeDayTime(\'' + t + '\')">&times;</button></span>').join('')
+            : '<span class="empty-note">No times yet. Add one below.</span>';
+        const list = appointments.filter(a => a.date === ds && a.status !== 'rejected' && a.status !== 'cancelled')
+            .sort((x, y) => (x.time || '').localeCompare(y.time || ''));
+        document.getElementById('dayApptWrap').style.display = list.length ? 'block' : 'none';
+        document.getElementById('dayAppts').innerHTML = list.map(a =>
+            '<div class="day-appt"><span><b>' + esc(a.time || '—') + '</b> &nbsp;' + esc(a.name) + '</span><span class="bk-status ' + esc(a.status) + '">' + esc(a.status).toUpperCase() + '</span></div>').join('');
+    }
+    async function toggleDayBlock() {
+        const ds = openDayStr, blocked = blockedDates.has(ds);
+        if (!blocked && !confirm('Close ' + ds + '? Customers will not be able to book it.')) return;
+        try {
+            const ref = db.collection('blockedDays').doc(ds);
+            if (blocked) await ref.delete(); else await ref.set({ status: 'booked' });
+        } catch (e) { alert('Error: ' + (e.code || e.message)); }
+        loadCalendarData();
+    }
+    async function addDayTime(t) {
+        if (!/^\d{2}:\d{2}$/.test(t || '')) { alert('Choose a time first.'); return; }
+        const ds = openDayStr, times = new Set(daySlots[ds] || []);
+        if (times.has(t)) return;
+        times.add(t);
+        try { await db.collection('slots').doc(ds).set({ times: Array.from(times).sort() }); }
+        catch (e) { alert('Error: ' + (e.code || e.message)); }
+        loadCalendarData();
+    }
+    async function removeDayTime(t) {
+        const ds = openDayStr;
+        if ((takenSlots[ds] || new Set()).has(t) && !confirm(t + ' already has a booking request. Remove this time anyway? (The request stays in BOOKINGS.)')) return;
+        const times = (daySlots[ds] || []).filter(x => x !== t);
+        try {
+            const ref = db.collection('slots').doc(ds);
+            if (times.length) await ref.set({ times: times }); else await ref.delete();
+        } catch (e) { alert('Error: ' + (e.code || e.message)); }
+        loadCalendarData();
+    }
+
+    // ----- bookings list -----
+    function updatePendingBadge() {
+        const n = appointments.filter(a => a.status === 'pending').length;
+        const b = document.getElementById('pendingBadge');
+        b.textContent = n; b.classList.toggle('show', n > 0);
+    }
+    function setBookingFilter(f, btn) {
+        bookingFilter = f;
+        document.querySelectorAll('.filter-btn').forEach(x => x.classList.toggle('active', x === btn));
+        renderBookings();
+    }
+    function waNumber(phone) {
+        let p = String(phone || '').replace(/[^\d+]/g, '');
+        if (p.startsWith('+')) p = p.slice(1);
+        else if (p.startsWith('00')) p = p.slice(2);
+        else if (p.startsWith('0')) p = '32' + p.slice(1);   // Belgian local number
+        return p;
+    }
+    function renderBookings() {
+        const el = document.getElementById('bookingList'); if (!el) return;
+        const t = todayStr();
+        let list = appointments.filter(a => {
+            const past = a.date < t;
+            if (bookingFilter === 'pending') return a.status === 'pending' && !past;
+            if (bookingFilter === 'confirmed') return a.status === 'confirmed' && !past;
+            return past || a.status === 'rejected' || a.status === 'cancelled';
+        });
+        list.sort((x, y) => (x.date + (x.time || '')).localeCompare(y.date + (y.time || '')));
+        if (bookingFilter === 'other') list.reverse();
+        if (!list.length) {
+            el.innerHTML = '<div class="list-empty">' + (bookingFilter === 'pending' ? 'No new requests.' : 'Nothing here yet.') + '</div>';
+            return;
         }
+        el.innerHTML = list.map(a => {
+            const created = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+            let actions = '';
+            if (a.status === 'pending') actions += '<button class="mini-btn ok" onclick="approveBooking(\'' + a.id + '\')"><i class="fas fa-check"></i> APPROVE</button>' +
+                                                   '<button class="mini-btn danger" onclick="rejectBooking(\'' + a.id + '\')"><i class="fas fa-xmark"></i> REJECT</button>';
+            if (a.status === 'confirmed') actions += '<button class="mini-btn danger" onclick="rejectBooking(\'' + a.id + '\', true)"><i class="fas fa-ban"></i> CANCEL</button>';
+            actions += '<button class="mini-btn wa" onclick="messageCustomer(\'' + a.id + '\')"><i class="fab fa-whatsapp"></i> MESSAGE</button>';
+            if (a.status !== 'pending') actions += '<button class="mini-btn" onclick="deleteBooking(\'' + a.id + '\')"><i class="fas fa-trash"></i></button>';
+            return '<div class="booking-card ' + esc(a.status) + '">' +
+                '<div class="bk-top"><div class="bk-when">' + esc(niceDate(a.date)) + '<small>' + (a.time ? 'AT ' + esc(a.time) : 'NO TIME CHOSEN — PROPOSE ONE') + '</small></div>' +
+                '<span class="bk-status ' + esc(a.status) + '">' + esc(a.status).toUpperCase() + '</span></div>' +
+                '<div class="bk-name">' + esc(a.name) + '</div>' +
+                '<div class="bk-line"><i class="fas fa-phone"></i> <a href="tel:' + esc(a.phone) + '" style="color:inherit">' + esc(a.phone) + '</a></div>' +
+                (a.email ? '<div class="bk-line"><i class="fas fa-envelope"></i> <a href="mailto:' + esc(a.email) + '" style="color:inherit">' + esc(a.email) + '</a></div>' : '') +
+                '<div class="bk-line"><i class="fas fa-ruler"></i> ' + esc(SIZE_LABEL[a.size] || a.size) + (a.placement ? ' &middot; ' + esc(a.placement) : '') + '</div>' +
+                (created ? '<div class="bk-line"><i class="fas fa-clock"></i> Requested ' + esc(created) + (a.lang ? ' &middot; ' + esc(a.lang.toUpperCase()) : '') + '</div>' : '') +
+                (a.description ? '<div class="bk-desc">' + esc(a.description) + '</div>' : '') +
+                '<div class="bk-actions">' + actions + '</div></div>';
+        }).join('');
+    }
+    const findAppt = id => appointments.find(a => a.id === id);
+    async function freeSlot(a) {
+        if (!a.time) return;
+        const ref = db.collection('bookedSlots').doc(a.date + '_' + a.time);
+        const snap = await ref.get();
+        if (snap.exists && snap.data().appt === a.id) await ref.delete();
+    }
+    async function approveBooking(id) {
+        const a = findAppt(id); if (!a) return;
+        const upd = { status: 'confirmed', handledAt: firebase.firestore.FieldValue.serverTimestamp() };
+        if (!a.time) {
+            const t = prompt('This customer did not pick a time. Which time do you propose for ' + a.date + '? (e.g. 13:00)', '');
+            if (t === null) return;
+            if (t.trim()) upd.time = t.trim();
+        }
+        try { await db.collection('appointments').doc(id).update(upd); }
+        catch (e) { alert('Error: ' + (e.code || e.message)); return; }
+        await loadCalendarData();
+        if (confirm('Approved. Send the customer a WhatsApp confirmation now?')) messageCustomer(id);
+    }
+    async function rejectBooking(id, isCancel) {
+        const a = findAppt(id); if (!a) return;
+        if (!confirm((isCancel ? 'Cancel' : 'Reject') + ' the request of ' + a.name + '? The time becomes available again.')) return;
+        try {
+            await freeSlot(a);
+            await db.collection('appointments').doc(id).update({ status: isCancel ? 'cancelled' : 'rejected', handledAt: firebase.firestore.FieldValue.serverTimestamp() });
+        } catch (e) { alert('Error: ' + (e.code || e.message)); return; }
+        await loadCalendarData();
+        if (confirm('Send the customer a WhatsApp message about this?')) messageCustomer(id);
+    }
+    async function deleteBooking(id) {
+        const a = findAppt(id); if (!a) return;
+        if (!confirm('Permanently delete the request of ' + a.name + '? This cannot be undone.')) return;
+        try { await freeSlot(a); await db.collection('appointments').doc(id).delete(); }
+        catch (e) { alert('Error: ' + (e.code || e.message)); return; }
+        loadCalendarData();
+    }
+    function messageCustomer(id) {
+        const a = findAppt(id); if (!a) return;
+        const nl = a.lang !== 'en';
+        const [y, m, d] = a.date.split('-');
+        const when = d + '/' + m + '/' + y + (a.time ? (nl ? ' om ' : ' at ') + a.time : '');
+        let msg;
+        if (a.status === 'confirmed') msg = nl
+            ? 'Hallo ' + a.name + '! Je tattoo-afspraak bij Inkjection is bevestigd: ' + when + '.\nAdres: Torenstraat 32, 2243 Zandhoven.\nTot dan! Talitha'
+            : 'Hi ' + a.name + '! Your tattoo appointment at Inkjection is confirmed: ' + when + '.\nAddress: Torenstraat 32, 2243 Zandhoven.\nSee you then! Talitha';
+        else if (a.status === 'rejected' || a.status === 'cancelled') msg = nl
+            ? 'Hallo ' + a.name + ', helaas kan je afspraak op ' + when + ' niet doorgaan. Kies gerust een andere datum op inkjection.be of laat me weten wat jou past. Talitha'
+            : 'Hi ' + a.name + ', unfortunately your appointment on ' + when + " can't go ahead. Feel free to pick another date on inkjection.be or tell me what suits you. Talitha";
+        else msg = nl ? 'Hallo ' + a.name + ', bedankt voor je aanvraag voor ' + when + '! ' : 'Hi ' + a.name + ', thanks for your request for ' + when + '! ';
+        window.open('https://wa.me/' + waNumber(a.phone) + '?text=' + encodeURIComponent(msg), '_blank');
     }
 
     function changeMonth(dir) {
@@ -457,6 +754,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         if(id === 'tab-gal') fetchGallery();
         if(id === 'tab-designs') fetchAdminDesigns('designs');
         if(id === 'tab-trick') fetchAdminDesigns('trick');
+        if(id === 'tab-book' || id === 'tab-cal') loadCalendarData();
     }
 
     // --- GALLERY WITH DRAG & DROP ---
