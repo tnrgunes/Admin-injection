@@ -185,7 +185,7 @@
         .appbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 12px; margin: 0 -16px; padding: calc(10px + env(safe-area-inset-top)) 16px 10px; background: rgba(11,7,16,0.82); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border-bottom: 1px solid var(--card-border); }
         .appbar-logo { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(217,167,88,0.45); object-fit: cover; }
         .appbar-title { flex: 1; display: flex; flex-direction: column; line-height: 1.15; }
-        .appbar-title b { font-family: var(--font-display); font-weight: 400; letter-spacing: 5px; font-size: 17px; color: var(--accent-warm); }
+        .appbar-title b { font-family: var(--font-display); font-weight: 400; letter-spacing: 3px; font-size: 16px; color: var(--accent-warm); }
         .appbar-title span { font-size: 10px; letter-spacing: 2px; color: var(--accent-soft); text-transform: uppercase; font-weight: 700; }
         .icon-btn { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); color: var(--text-soft); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; text-decoration: none; }
         .icon-btn:active { transform: scale(.94); border-color: var(--accent); }
@@ -203,6 +203,7 @@
         .seg-btn { flex: 1; padding: 10px 4px; border-radius: 10px; border: none; background: none; color: var(--text-dim); font: 700 12px var(--font-body); cursor: pointer; }
         .seg-btn.active { background: var(--grad); color: #150c22; }
         .media-sub { display: none; } .media-sub.active { display: block; }
+        .appbar { gap: 8px; }
         .icon-btn.on { color: var(--accent-warm); border-color: rgba(217,167,88,0.5); }
         .toast { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translate(-50%, -150%); z-index: 10001; padding: 12px 18px; border-radius: 14px; background: var(--card2); border: 1px solid var(--accent-warm); color: #fff; font-size: 13px; font-weight: 700; box-shadow: 0 10px 30px rgba(0,0,0,.5); transition: transform .35s ease; max-width: 90vw; cursor: pointer; }
         .toast.show { transform: translate(-50%, 0); }
@@ -358,6 +359,7 @@
     <div class="appbar">
         <img class="appbar-logo" src="https://i.ibb.co/tPTrSN8k/image.png" alt="Inkjection">
         <div class="appbar-title"><b>INKJECTION</b><span id="welcome-user"></span></div>
+        <button class="icon-btn" id="faceBtn" onclick="openFaceSheet()" title="Face ID"><i class="fas fa-lock-open"></i></button>
         <button class="icon-btn" id="pushBtn" onclick="openPushSheet()" title="Notifications"><i class="fas fa-bell-slash"></i></button>
         <a class="icon-btn" href="https://inkjection.be" target="_blank" title="Open website"><i class="fas fa-arrow-up-right-from-square"></i></a>
         <button class="icon-btn" onclick="doLogout()" title="Logout"><i class="fas fa-right-from-bracket"></i></button>
@@ -496,10 +498,10 @@
 <div class="edit-modal-overlay" id="faceModal">
     <div class="edit-modal">
         <h3>FACE ID</h3>
-        <div class="empty-note" style="font-size:13px;line-height:1.6">You stay logged in on this phone. Do you also want to lock the app with <b>Face ID</b>, so only you can open it?</div>
+        <div class="empty-note" id="faceBody" style="font-size:13px;line-height:1.6"></div>
         <div class="btn-row">
-            <button class="edit-cancel" onclick="declineFaceId()">NO THANKS</button>
-            <button class="edit-save" onclick="setupFaceId()">USE FACE ID</button>
+            <button class="edit-cancel" id="faceNo" onclick="declineFaceId()">NO THANKS</button>
+            <button class="edit-save" id="faceYes" onclick="setupFaceId()">USE FACE ID</button>
         </div>
     </div>
 </div>
@@ -685,7 +687,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         startLive();
         switchTab(currentTab);
         refreshPushState(); renewPushToken();
-        if (freshLogin) { freshLogin = false; maybeOfferFaceId(); }
+        freshLogin = false; refreshFaceBtn(); maybeOfferFaceId();
     }
     auth.onAuthStateChanged(async function (user) {
         if (!user) { showLogin(); return; }
@@ -707,11 +709,30 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         }
     }
     async function usePasswordInstead() { ls.del(LOCK_KEY); unlocked = false; await auth.signOut(); }
-    async function maybeOfferFaceId() {
-        if (ls.get(LOCK_KEY) || ls.get(LOCK_DECLINED) || !(await faceIdAvailable())) return;
+    function refreshFaceBtn() {
+        const on = !!ls.get(LOCK_KEY), b = document.getElementById('faceBtn');
+        b.classList.toggle('on', on); b.innerHTML = '<i class="fas ' + (on ? 'fa-lock' : 'fa-lock-open') + '"></i>';
+    }
+    async function openFaceSheet(isOffer) {
+        const body = document.getElementById('faceBody'), yes = document.getElementById('faceYes'), no = document.getElementById('faceNo');
+        yes.style.display = ''; no.innerText = isOffer ? 'NO THANKS' : 'CLOSE'; no.onclick = isOffer ? declineFaceId : () => document.getElementById('faceModal').classList.remove('active');
+        if (!(await faceIdAvailable())) {
+            body.innerHTML = 'Face ID is not available here. On iPhone: open the app from your <b>home screen</b> and make sure Face ID is set up in your phone settings.';
+            yes.style.display = 'none';
+        } else if (ls.get(LOCK_KEY)) {
+            body.innerHTML = 'Face ID lock is <b style="color:#7be3a3">ON</b>. The app asks for your face when you open it (and after 5 minutes in the background).';
+            yes.innerText = 'TURN OFF'; yes.onclick = () => { ls.del(LOCK_KEY); refreshFaceBtn(); document.getElementById('faceModal').classList.remove('active'); toast('Face ID lock is off'); };
+        } else {
+            body.innerHTML = 'You stay logged in on this phone. Lock the app with <b>Face ID</b> so only you can open it?';
+            yes.innerText = 'USE FACE ID'; yes.onclick = setupFaceId;
+        }
         document.getElementById('faceModal').classList.add('active');
     }
-    function declineFaceId() { ls.set(LOCK_DECLINED, '1'); document.getElementById('faceModal').classList.remove('active'); }
+    async function maybeOfferFaceId() {
+        if (ls.get(LOCK_KEY) || ls.get(LOCK_DECLINED) || !(await faceIdAvailable())) return;
+        openFaceSheet(true);
+    }
+    function declineFaceId() { ls.set(LOCK_DECLINED, '1'); document.getElementById('faceModal').classList.remove('active'); toast('You can turn on Face ID any time with the lock icon at the top.'); }
     async function setupFaceId() {
         try {
             const u = panelUser || auth.currentUser;
@@ -721,7 +742,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
                 pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
                 authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
                 timeout: 60000 } });
-            ls.set(LOCK_KEY, b64u(cred.rawId));
+            ls.set(LOCK_KEY, b64u(cred.rawId)); refreshFaceBtn();
             document.getElementById('faceModal').classList.remove('active');
             toast('<i class="fas fa-face-smile"></i> Face ID is on. The app asks for it when you open it.');
         } catch (e) { alert('Face ID could not be set up: ' + (e.name || e.message)); }
