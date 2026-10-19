@@ -387,8 +387,8 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
     async function resetPass() {
         const email = document.getElementById('login-email').value.trim();
         if (!email) { loginMsg('Enter your e-mail first.'); return; }
-        try { await auth.sendPasswordResetEmail(email); } catch (e) {}
-        loginMsg('If this account exists, a reset link has been sent.', true);
+        try { await auth.sendPasswordResetEmail(email); loginMsg('Reset link sent. Check your inbox and spam folder.', true); }
+        catch (e) { loginMsg('Could not send reset e-mail (' + (e.code || e.message) + ')'); }
     }
     function doLogout() { auth.signOut(); }
     auth.onAuthStateChanged(async function (user) {
