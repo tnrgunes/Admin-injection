@@ -380,7 +380,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         try {
             await auth.signInWithEmailAndPassword(document.getElementById('login-email').value.trim(), document.getElementById('login-pass').value);
         } catch (err) {
-            loginMsg(err.code === 'auth/too-many-requests' ? 'Too many attempts. Try again later.' : 'Incorrect e-mail or password.');
+            loginMsg((err.code === 'auth/too-many-requests' ? 'Too many attempts. Try again later.' : 'Incorrect e-mail or password.') + ' (' + (err.code || err.message) + ')');
         }
         btn.disabled = false;
     }
