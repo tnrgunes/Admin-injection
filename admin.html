@@ -339,7 +339,13 @@
     </div>
     <div class="hw-trickortreat"><div id="hwTrickAnim"></div></div>
     <div class="brand">INKJECTION</div>
-    <form id="login-form" onsubmit="doLogin(event)" autocomplete="on">
+    <div id="auth-wait" class="login-msg ok" style="margin-top:10px">Loading…</div>
+    <div id="lock-screen" style="display:none">
+        <button type="button" class="user-choice-btn" style="width:100%;max-width:340px" onclick="unlockWithFaceId()"><i class="fas fa-face-smile"></i>FACE ID</button>
+        <div id="lock-msg" class="login-msg" style="margin-top:12px"></div>
+        <button type="button" class="login-link" onclick="usePasswordInstead()">Use password instead</button>
+    </div>
+    <form id="login-form" onsubmit="doLogin(event)" autocomplete="on" style="display:none">
         <input type="email" id="login-email" class="login-input" placeholder="E-mail" autocomplete="username" required>
         <input type="password" id="login-pass" class="login-input" placeholder="Password" autocomplete="current-password" required>
         <button type="submit" id="login-btn" class="user-choice-btn"><i class="fas fa-lock"></i>LOGIN</button>
@@ -486,6 +492,18 @@
     <button class="nav-btn" data-tab="tab-reviews" onclick="switchTab('tab-reviews')"><i class="fas fa-star"></i><span>Reviews</span></button>
 </nav>
 
+<!-- FACE ID OFFER -->
+<div class="edit-modal-overlay" id="faceModal">
+    <div class="edit-modal">
+        <h3>FACE ID</h3>
+        <div class="empty-note" style="font-size:13px;line-height:1.6">You stay logged in on this phone. Do you also want to lock the app with <b>Face ID</b>, so only you can open it?</div>
+        <div class="btn-row">
+            <button class="edit-cancel" onclick="declineFaceId()">NO THANKS</button>
+            <button class="edit-save" onclick="setupFaceId()">USE FACE ID</button>
+        </div>
+    </div>
+</div>
+
 <!-- NOTIFICATIONS SHEET -->
 <div class="edit-modal-overlay" id="pushModal" onclick="if(event.target===this)this.classList.remove('active')">
     <div class="edit-modal">
@@ -610,8 +628,10 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         const btn = document.getElementById('login-btn');
         btn.disabled = true; loginMsg('');
         try {
+            freshLogin = true;
             await auth.signInWithEmailAndPassword(document.getElementById('login-email').value.trim(), document.getElementById('login-pass').value);
         } catch (err) {
+            freshLogin = false;
             loginMsg((err.code === 'auth/too-many-requests' ? 'Too many attempts. Try again later.' : 'Incorrect e-mail or password.') + ' (' + (err.code || err.message) + ')');
         }
         btn.disabled = false;
@@ -622,27 +642,94 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         try { await auth.sendPasswordResetEmail(email); loginMsg('Reset link sent. Check your inbox and spam folder.', true); }
         catch (e) { loginMsg('Could not send reset e-mail (' + (e.code || e.message) + ')'); }
     }
-    function doLogout() { auth.signOut(); }
+    function doLogout() { if (!confirm('Log out? Next time you need your e-mail and password again.')) return; ls.del(LOCK_KEY); auth.signOut(); }
+    // ===== SESSION, LOCK SCREEN & FACE ID =====
+    // Firebase keeps the session on this device (LOCAL persistence): no password needed until LOGOUT.
+    // Face ID is an extra lock on top of that session, checked by the phone itself.
+    const LOCK_KEY = 'inkjection_faceid_cred', LOCK_DECLINED = 'inkjection_faceid_no', EMAIL_KEY = 'inkjection_email';
+    const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
+    let panelUser = null, panelName = '', unlocked = false, freshLogin = false, hiddenAt = 0;
+    const b64u = buf => btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const unb64u = str => { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; return Uint8Array.from(atob(str), c => c.charCodeAt(0)); };
+    const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+    async function faceIdAvailable() {
+        try { return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch (e) { return false; }
+    }
+    function showAuthPart(part) {   // 'wait' | 'lock' | 'form'
+        document.getElementById('auth-wait').style.display = part === 'wait' ? '' : 'none';
+        document.getElementById('lock-screen').style.display = part === 'lock' ? '' : 'none';
+        document.getElementById('login-form').style.display = part === 'form' ? '' : 'none';
+    }
+    function showLogin() {
+        stopLive(); panelUser = null; unlocked = false;
+        document.body.classList.remove('in-panel');
+        document.getElementById('admin-panel').style.display = 'none';
+        document.getElementById('auth-container').style.display = '';
+        const em = ls.get(EMAIL_KEY); if (em && !document.getElementById('login-email').value) document.getElementById('login-email').value = em;
+        showAuthPart('form');
+    }
+    function showLock() {
+        document.body.classList.remove('in-panel');
+        document.getElementById('admin-panel').style.display = 'none';
+        document.getElementById('auth-container').style.display = '';
+        document.getElementById('lock-msg').textContent = '';
+        showAuthPart('lock');
+    }
+    function openPanel() {
+        unlocked = true;
+        document.getElementById('welcome-user').innerText = 'Welcome, ' + panelName;
+        document.getElementById('auth-container').style.display = 'none';
+        document.getElementById('admin-panel').style.display = 'block';
+        document.body.classList.add('in-panel');
+        document.getElementById('login-pass').value = '';
+        startLive();
+        switchTab(currentTab);
+        refreshPushState(); renewPushToken();
+        if (freshLogin) { freshLogin = false; maybeOfferFaceId(); }
+    }
     auth.onAuthStateChanged(async function (user) {
-        if (user) {
-            let adminDoc = null;
-            try { adminDoc = await db.collection('admins').doc(user.uid).get(); } catch (e) {}
-            if (!adminDoc || !adminDoc.exists) { await auth.signOut(); loginMsg('This account has no admin access.'); return; }
-            const nm = adminDoc.data().name || (user.email || '').split('@')[0];
-            document.getElementById('welcome-user').innerText = 'Welcome, ' + nm;
-            document.getElementById('auth-container').style.display = 'none';
-            document.getElementById('admin-panel').style.display = 'block';
-            document.body.classList.add('in-panel');
-            document.getElementById('login-pass').value = '';
-            startLive();
-            switchTab(currentTab);
-            refreshPushState(); renewPushToken();
-        } else {
-            stopLive();
-            document.body.classList.remove('in-panel');
-            document.getElementById('admin-panel').style.display = 'none';
-            document.getElementById('auth-container').style.display = '';
+        if (!user) { showLogin(); return; }
+        let adminDoc = null;
+        try { adminDoc = await db.collection('admins').doc(user.uid).get(); } catch (e) {}
+        if (!adminDoc || !adminDoc.exists) { await auth.signOut(); loginMsg('This account has no admin access.'); return; }
+        panelUser = user; panelName = adminDoc.data().name || (user.email || '').split('@')[0];
+        if (user.email) ls.set(EMAIL_KEY, user.email);
+        if (ls.get(LOCK_KEY) && !freshLogin && !unlocked) { showLock(); unlockWithFaceId(true); }
+        else openPanel();
+    });
+    async function unlockWithFaceId(auto) {
+        const id = ls.get(LOCK_KEY); if (!id) { openPanel(); return; }
+        try {
+            await navigator.credentials.get({ publicKey: { challenge: rnd(32), allowCredentials: [{ type: 'public-key', id: unb64u(id) }], userVerification: 'required', timeout: 60000 } });
+            openPanel();
+        } catch (e) {
+            if (!auto) document.getElementById('lock-msg').textContent = 'Face ID did not work. Try again or use your password.';
         }
+    }
+    async function usePasswordInstead() { ls.del(LOCK_KEY); unlocked = false; await auth.signOut(); }
+    async function maybeOfferFaceId() {
+        if (ls.get(LOCK_KEY) || ls.get(LOCK_DECLINED) || !(await faceIdAvailable())) return;
+        document.getElementById('faceModal').classList.add('active');
+    }
+    function declineFaceId() { ls.set(LOCK_DECLINED, '1'); document.getElementById('faceModal').classList.remove('active'); }
+    async function setupFaceId() {
+        try {
+            const u = panelUser || auth.currentUser;
+            const cred = await navigator.credentials.create({ publicKey: {
+                challenge: rnd(32), rp: { name: 'Inkjection Admin' },
+                user: { id: new TextEncoder().encode(u.uid), name: u.email || u.uid, displayName: panelName || 'Inkjection' },
+                pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+                authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
+                timeout: 60000 } });
+            ls.set(LOCK_KEY, b64u(cred.rawId));
+            document.getElementById('faceModal').classList.remove('active');
+            toast('<i class="fas fa-face-smile"></i> Face ID is on. The app asks for it when you open it.');
+        } catch (e) { alert('Face ID could not be set up: ' + (e.name || e.message)); }
+    }
+    // lock again when the app was in the background for more than 5 minutes
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { hiddenAt = Date.now(); return; }
+        if (ls.get(LOCK_KEY) && unlocked && panelUser && hiddenAt && Date.now() - hiddenAt > 5 * 60 * 1000) { unlocked = false; showLock(); }
     });
 
     // ===== CALENDAR + BOOKINGS DATA =====
