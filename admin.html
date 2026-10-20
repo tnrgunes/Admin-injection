@@ -204,6 +204,22 @@
         .seg-btn.active { background: var(--grad); color: #150c22; }
         .media-sub { display: none; } .media-sub.active { display: block; }
         .appbar { gap: 8px; }
+        input[type="tel"], input[type="email"], input[type="date"], input[type="time"], input[type="search"], select { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card2); color: #fff; margin: 8px 0; box-sizing: border-box; font-family: inherit; font-size: 15px; outline: none; color-scheme: dark; -webkit-appearance: none; appearance: none; }
+        input[type="tel"]:focus, input[type="email"]:focus, input[type="date"]:focus, input[type="time"]:focus, input[type="search"]:focus, select:focus { border-color: var(--accent); }
+        #closeModal, #faceModal, #pushModal { z-index: 10000; }
+        .reason-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .reason-btn { padding: 14px 10px; border-radius: 14px; border: 1px solid var(--card-border); background: var(--card2); color: var(--text); font: 700 13px var(--font-body); cursor: pointer; display: flex; align-items: center; gap: 8px; text-align: left; }
+        .reason-btn i { color: var(--accent-soft); width: 16px; text-align: center; }
+        .reason-btn.active { border-color: var(--accent-warm); background: rgba(217,167,88,0.14); color: #fff; }
+        .reason-btn.active i { color: var(--accent-warm); }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .cust-results { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
+        .cust-row { padding: 10px 12px; border-radius: 12px; background: var(--card2); border: 1px solid var(--card-border); cursor: pointer; font-size: 13px; }
+        .cust-row b { display: block; font-size: 14px; }
+        .cust-row span { color: var(--text-dim); font-size: 12px; }
+        .cust-row:active { border-color: var(--accent); }
+        .cust-picked { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--accent-warm); background: rgba(217,167,88,0.1); font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .day-reason { display: block; font-size: 11px; color: var(--accent-warm); margin-top: 3px; font-weight: 700; }
         .icon-btn.on { color: var(--accent-warm); border-color: rgba(217,167,88,0.5); }
         .toast { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translate(-50%, -150%); z-index: 10001; padding: 12px 18px; border-radius: 14px; background: var(--card2); border: 1px solid var(--accent-warm); color: #fff; font-size: 13px; font-weight: 700; box-shadow: 0 10px 30px rgba(0,0,0,.5); transition: transform .35s ease; max-width: 90vw; cursor: pointer; }
         .toast.show { transform: translate(-50%, 0); }
@@ -342,7 +358,8 @@
     <div class="brand">INKJECTION</div>
     <div id="auth-wait" class="login-msg ok" style="margin-top:10px">Loading…</div>
     <div id="lock-screen" style="display:none">
-        <button type="button" class="user-choice-btn" style="width:100%;max-width:340px" onclick="unlockWithFaceId()"><i class="fas fa-face-smile"></i>FACE ID</button>
+        <button type="button" class="user-choice-btn" style="width:100%;max-width:340px"><i class="fas fa-face-smile"></i>FACE ID</button>
+        <div class="login-msg ok" style="margin-top:10px">Tap anywhere to unlock</div>
         <div id="lock-msg" class="login-msg" style="margin-top:12px"></div>
         <button type="button" class="login-link" onclick="usePasswordInstead()">Use password instead</button>
     </div>
@@ -494,6 +511,61 @@
     <button class="nav-btn" data-tab="tab-reviews" onclick="switchTab('tab-reviews')"><i class="fas fa-star"></i><span>Reviews</span></button>
 </nav>
 
+<!-- CLOSE DAY SHEET -->
+<div class="edit-modal-overlay" id="closeModal">
+    <div class="edit-modal day-sheet">
+        <h3 id="closeTitle">CLOSE DAY</h3>
+        <div class="sheet-sub" id="closeSub">Why is this day closed? Customers only see that the day is not available.</div>
+        <div id="closeStep1">
+            <div class="reason-grid" id="reasonGrid"></div>
+            <span class="sheet-label" style="margin-top:14px">Note <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></span>
+            <input type="text" id="closeNote" maxlength="200" placeholder="e.g. guest spot in Ghent">
+        </div>
+        <div id="closeStep2" style="display:none">
+            <div class="segmented" style="margin-bottom:14px">
+                <button class="seg-btn active" id="cNewBtn" onclick="setCustKind('new')">New customer</button>
+                <button class="seg-btn" id="cOldBtn" onclick="setCustKind('existing')">Existing customer</button>
+            </div>
+            <div id="cNewWrap">
+                <span class="form-label" style="margin-top:0">Full name *</span>
+                <input type="text" id="cName" maxlength="80" placeholder="e.g. Peter Janssens">
+                <span class="form-label">Phone</span>
+                <input type="tel" id="cPhone" maxlength="30" placeholder="0470 12 34 56">
+                <span class="form-label">Email</span>
+                <input type="email" id="cEmail" maxlength="120" placeholder="name@mail.com">
+                <span class="form-label">Date of birth</span>
+                <input type="date" id="cBirth">
+                <span class="form-label">Notes (allergies, style preferences…)</span>
+                <textarea id="cNotes" maxlength="1000"></textarea>
+            </div>
+            <div id="cOldWrap" style="display:none">
+                <span class="form-label" style="margin-top:0">Search by name</span>
+                <input type="search" id="cSearch" placeholder="e.g. Peter" oninput="renderCustSearch()" autocomplete="off">
+                <div id="cResults" class="cust-results"></div>
+                <div id="cPicked" class="cust-picked" style="display:none"></div>
+            </div>
+            <span class="sheet-label" style="margin-top:18px">Appointment</span>
+            <div class="two-col">
+                <div><span class="form-label" style="margin-top:0">Start time</span><input type="time" id="aTime" step="900"></div>
+                <div><span class="form-label" style="margin-top:0">Body zone</span><select id="aZone"></select></div>
+            </div>
+            <span class="form-label">Description</span>
+            <textarea id="aDesc" maxlength="1000" placeholder="e.g. fine line rose with name, forearm"></textarea>
+            <div class="two-col">
+                <div><span class="form-label">Price (€)</span><input type="number" id="aPrice" min="0" step="1" placeholder="0"></div>
+                <div><span class="form-label">Deposit received (€)</span><input type="number" id="aDeposit" min="0" step="1" placeholder="0"></div>
+            </div>
+            <span class="form-label">Session notes</span>
+            <textarea id="aNotes" maxlength="1000"></textarea>
+        </div>
+        <div class="login-msg" id="closeErr" style="margin-top:10px"></div>
+        <div class="btn-row">
+            <button class="edit-cancel" id="closeBack" onclick="closeSheetBack()">CANCEL</button>
+            <button class="edit-save" id="closeSave" onclick="closeSheetNext()">CLOSE DAY</button>
+        </div>
+    </div>
+</div>
+
 <!-- FACE ID OFFER -->
 <div class="edit-modal-overlay" id="faceModal">
     <div class="edit-modal">
@@ -528,7 +600,7 @@
         <h3 id="dayTitle">DAY</h3>
         <div class="sheet-sub" id="daySub"></div>
         <div class="day-status">
-            <span>Status: <b id="dayStatusTxt"></b></span>
+            <span>Status: <b id="dayStatusTxt"></b><span id="dayReason" class="day-reason"></span></span>
             <button class="mini-btn" id="dayToggleBtn" onclick="toggleDayBlock()"></button>
         </div>
         <div id="dayTimesWrap">
@@ -687,7 +759,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         startLive();
         switchTab(currentTab);
         refreshPushState(); renewPushToken();
-        freshLogin = false; refreshFaceBtn(); maybeOfferFaceId();
+        freshLogin = false; refreshFaceBtn();
     }
     auth.onAuthStateChanged(async function (user) {
         if (!user) { showLogin(); return; }
@@ -701,10 +773,14 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
     });
     async function unlockWithFaceId(auto) {
         const id = ls.get(LOCK_KEY); if (!id) { openPanel(); return; }
+        if (authenticating) return;
+        authenticating = true;
         try {
             await navigator.credentials.get({ publicKey: { challenge: rnd(32), allowCredentials: [{ type: 'public-key', id: unb64u(id) }], userVerification: 'required', timeout: 60000 } });
+            unlockedAt = Date.now(); authenticating = false;
             openPanel();
         } catch (e) {
+            authenticating = false;
             if (!auto) document.getElementById('lock-msg').textContent = 'Face ID did not work. Try again or use your password.';
         }
     }
@@ -720,7 +796,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
             body.innerHTML = 'Face ID is not available here. On iPhone: open the app from your <b>home screen</b> and make sure Face ID is set up in your phone settings.';
             yes.style.display = 'none';
         } else if (ls.get(LOCK_KEY)) {
-            body.innerHTML = 'Face ID lock is <b style="color:#7be3a3">ON</b>. The app asks for your face when you open it (and after 5 minutes in the background).';
+            body.innerHTML = 'Face ID lock is <b style="color:#7be3a3">ON</b>. The app asks for your face every time you open it or come back to it.';
             yes.innerText = 'TURN OFF'; yes.onclick = () => { ls.del(LOCK_KEY); refreshFaceBtn(); document.getElementById('faceModal').classList.remove('active'); toast('Face ID lock is off'); };
         } else {
             body.innerHTML = 'You stay logged in on this phone. Lock the app with <b>Face ID</b> so only you can open it?';
@@ -734,6 +810,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
     }
     function declineFaceId() { ls.set(LOCK_DECLINED, '1'); document.getElementById('faceModal').classList.remove('active'); toast('You can turn on Face ID any time with the lock icon at the top.'); }
     async function setupFaceId() {
+        authenticating = true;
         try {
             const u = panelUser || auth.currentUser;
             const cred = await navigator.credentials.create({ publicKey: {
@@ -742,19 +819,30 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
                 pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
                 authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
                 timeout: 60000 } });
-            ls.set(LOCK_KEY, b64u(cred.rawId)); refreshFaceBtn();
+            ls.set(LOCK_KEY, b64u(cred.rawId)); refreshFaceBtn(); unlockedAt = Date.now();
             document.getElementById('faceModal').classList.remove('active');
             toast('<i class="fas fa-face-smile"></i> Face ID is on. The app asks for it when you open it.');
         } catch (e) { alert('Face ID could not be set up: ' + (e.name || e.message)); }
+        authenticating = false;
     }
-    // lock again when the app was in the background for more than 5 minutes
+    // lock again every time the app comes back from the background
+    let authenticating = false, unlockedAt = 0;
     document.addEventListener('visibilitychange', () => {
-        if (document.hidden) { hiddenAt = Date.now(); return; }
-        if (ls.get(LOCK_KEY) && unlocked && panelUser && hiddenAt && Date.now() - hiddenAt > 5 * 60 * 1000) { unlocked = false; showLock(); }
+        if (authenticating || Date.now() - unlockedAt < 3000) return;   // ignore the Face ID sheet itself
+        if (document.hidden) { if (ls.get(LOCK_KEY) && unlocked) { unlocked = false; showLock(); } return; }
+        if (ls.get(LOCK_KEY) && !unlocked && panelUser) { showLock(); setTimeout(() => { if (!unlocked) unlockWithFaceId(true); }, 350); }
     });
+    // locked: a tap anywhere on the lock screen starts Face ID
+    document.addEventListener('click', e => {
+        if (unlocked || authenticating || !ls.get(LOCK_KEY) || !panelUser) return;
+        if (document.getElementById('lock-screen').style.display === 'none') return;
+        if (e.target.closest('.login-link')) return;
+        unlockWithFaceId();
+    }, true);
 
     // ===== CALENDAR + BOOKINGS DATA =====
     let daySlots = {};        // '2026-10-21' -> ['10:00','14:00']
+    let closures = {};        // '2026-10-21' -> closure (reason, booking, sync)
     let takenSlots = {};      // '2026-10-21' -> Set('10:00')
     let appointments = [];    // [{id, ...data}]
     let bookingFilter = 'pending';
@@ -783,6 +871,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         if (liveUnsubs.length) return;
         liveUnsubs.push(db.collection('blockedDays').onSnapshot(sn => { blockedDates.clear(); sn.forEach(d => blockedDates.add(d.id)); rerenderAll(); }, liveErr));
         liveUnsubs.push(db.collection('slots').onSnapshot(sn => { daySlots = {}; sn.forEach(d => { daySlots[d.id] = (d.data().times || []).slice().sort(); }); rerenderAll(); }, liveErr));
+        liveUnsubs.push(db.collection('closures').onSnapshot(sn => { closures = {}; sn.forEach(d => { closures[d.id] = d.data(); }); rerenderAll(); }, liveErr));
         liveUnsubs.push(db.collection('bookedSlots').onSnapshot(sn => { takenSlots = {}; sn.forEach(d => { const x = d.data(); (takenSlots[x.date] = takenSlots[x.date] || new Set()).add(x.time); }); rerenderAll(); }, liveErr));
         liveUnsubs.push(db.collection('appointments').onSnapshot(sn => {
             if (liveReady.appts) {
@@ -847,6 +936,9 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
             : (times.length ? 'Customers choose one of these times.' : 'No times set: customers request the day, you propose a time.');
         const st = document.getElementById('dayStatusTxt');
         st.innerText = blocked ? 'CLOSED' : 'OPEN'; st.className = blocked ? 'closed' : 'open';
+        const cl = blocked && closures[ds] && closures[ds].state !== 'reopened' ? closures[ds] : null;
+        document.getElementById('dayReason').innerHTML = cl ? esc(cl.reasonLabel || reasonLabel(cl.reason)) + (cl.note ? ' · ' + esc(cl.note) : '') +
+            (cl.booking ? '<br>' + esc(cl.booking.name || '') + (cl.booking.time ? ' · ' + esc(cl.booking.time) : '') + ' · ' + (cl.sync && cl.sync.sessionId ? 'in PC app ✓' : 'waiting for PC app') : '') : '';
         const tb = document.getElementById('dayToggleBtn');
         tb.innerText = blocked ? 'OPEN DAY' : 'CLOSE DAY'; tb.className = 'mini-btn ' + (blocked ? 'ok' : 'danger');
         document.getElementById('dayTimesWrap').style.display = blocked ? 'none' : 'block';
@@ -860,14 +952,134 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         document.getElementById('dayAppts').innerHTML = list.map(a =>
             '<div class="day-appt"><span><b>' + esc(a.time || '—') + '</b> &nbsp;' + esc(a.name) + '</span><span class="bk-status ' + esc(a.status) + '">' + esc(a.status).toUpperCase() + '</span></div>').join('');
     }
+    // ===== CLOSE A DAY (reason + optional booking for the PC app) =====
+    const CLOSE_REASONS = [
+        { k: 'holiday', label: 'Holiday', ic: 'fa-umbrella-beach' },
+        { k: 'sick', label: 'Sick', ic: 'fa-temperature-half' },
+        { k: 'private', label: 'Private', ic: 'fa-house' },
+        { k: 'fully_booked', label: 'Fully booked', ic: 'fa-calendar-check' },
+        { k: 'training', label: 'Training / Convention', ic: 'fa-graduation-cap' },
+        { k: 'amy', label: 'Amy is here', ic: 'fa-heart' },
+        { k: 'other', label: 'Other', ic: 'fa-ellipsis' }
+    ];
+    const BODY_ZONES = ["Head", "Neck", "Chest", "Ribs (right)", "Ribs (left)", "Stomach", "Hip (right)", "Hip (left)", "Shoulder (right)", "Shoulder (left)", "Upper arm (right)", "Upper arm (left)", "Forearm (right)", "Forearm (left)", "Hand (right)", "Hand (left)", "Thigh (right)", "Thigh (left)", "Calf (right)", "Calf (left)", "Foot (right)", "Foot (left)", "Upper back", "Lower back", "Throat", "Sternum", "Full back", "Full sleeve (left)", "Full sleeve (right)", "Other"];
+    let closeReason = null, closeStep = 1, custKind = 'new', custPicked = null, custIndex = null;
+    function reasonLabel(k) { const r = CLOSE_REASONS.find(x => x.k === k); return r ? r.label : (k || ''); }
     async function toggleDayBlock() {
         const ds = openDayStr, blocked = blockedDates.has(ds);
-        if (!blocked && !confirm('Close ' + ds + '? Customers will not be able to book it.')) return;
+        if (blocked) {
+            const c = closures[ds];
+            const extra = c && c.booking ? '\n\nThe appointment of ' + (c.booking.name || 'this customer') + ' stays in the PC app — check it there.' : '';
+            if (!confirm('Open ' + ds + ' again? Customers can book it again.' + extra)) return;
+            try {
+                const b = db.batch();
+                b.delete(db.collection('blockedDays').doc(ds));
+                if (c) b.update(db.collection('closures').doc(ds), { state: 'reopened', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                await b.commit();
+            } catch (e) { alert('Error: ' + (e.code || e.message)); }
+            return;
+        }
+        openCloseSheet(ds);
+    }
+    function openCloseSheet(ds) {
+        closeReason = null; closeStep = 1; custKind = 'new'; custPicked = null;
+        ['closeNote', 'cName', 'cPhone', 'cEmail', 'cBirth', 'cNotes', 'cSearch', 'aTime', 'aDesc', 'aPrice', 'aDeposit', 'aNotes'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('aZone').innerHTML = '<option value="">— choose —</option>' + BODY_ZONES.map(z => '<option>' + esc(z) + '</option>').join('');
+        document.getElementById('closeTitle').innerText = 'CLOSE ' + niceDate(ds).toUpperCase();
+        document.getElementById('reasonGrid').innerHTML = CLOSE_REASONS.map(r =>
+            '<button class="reason-btn" data-r="' + r.k + '" onclick="pickReason(\'' + r.k + '\')"><i class="fas ' + r.ic + '"></i>' + esc(r.label) + '</button>').join('');
+        setCustKind('new'); showCloseStep(1);
+        document.getElementById('closeModal').classList.add('active');
+    }
+    function showCloseStep(n) {
+        closeStep = n;
+        document.getElementById('closeStep1').style.display = n === 1 ? '' : 'none';
+        document.getElementById('closeStep2').style.display = n === 2 ? '' : 'none';
+        document.getElementById('closeSub').innerText = n === 1 ? 'Why is this day closed? Customers only see that the day is not available.'
+            : 'Who is the appointment for? It goes straight into the PC app.';
+        document.getElementById('closeBack').innerText = n === 1 ? 'CANCEL' : 'BACK';
+        document.getElementById('closeSave').innerText = (n === 1 && closeReason === 'fully_booked') ? 'NEXT' : 'CLOSE DAY';
+        document.getElementById('closeErr').textContent = '';
+    }
+    function pickReason(k) {
+        closeReason = k;
+        document.querySelectorAll('.reason-btn').forEach(b => b.classList.toggle('active', b.dataset.r === k));
+        showCloseStep(1);
+    }
+    function closeSheetBack() {
+        if (closeStep === 2) { showCloseStep(1); return; }
+        document.getElementById('closeModal').classList.remove('active');
+    }
+    function setCustKind(k) {
+        custKind = k;
+        document.getElementById('cNewBtn').classList.toggle('active', k === 'new');
+        document.getElementById('cOldBtn').classList.toggle('active', k === 'existing');
+        document.getElementById('cNewWrap').style.display = k === 'new' ? '' : 'none';
+        document.getElementById('cOldWrap').style.display = k === 'existing' ? '' : 'none';
+        if (k === 'existing') loadCustIndex();
+    }
+    async function loadCustIndex() {
+        if (custIndex) { renderCustSearch(); return; }
+        document.getElementById('cResults').innerHTML = '<div class="empty-note">Loading customers…</div>';
         try {
-            const ref = db.collection('blockedDays').doc(ds);
-            if (blocked) await ref.delete(); else await ref.set({ status: 'booked' });
-        } catch (e) { alert('Error: ' + (e.code || e.message)); }
-        loadCalendarData();
+            const sn = await db.collection('customerIndex').get();
+            custIndex = []; sn.forEach(d => custIndex.push(Object.assign({ id: d.id }, d.data())));
+            custIndex.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        } catch (e) { custIndex = null; document.getElementById('cResults').innerHTML = '<div class="empty-note">Could not load customers: ' + esc(e.code || e.message) + '</div>'; return; }
+        renderCustSearch();
+    }
+    const fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    function renderCustSearch() {
+        const box = document.getElementById('cResults'), picked = document.getElementById('cPicked');
+        if (custPicked) {
+            box.style.display = 'none'; picked.style.display = 'flex';
+            picked.innerHTML = '<span><b>' + esc(custPicked.name) + '</b><br><span style="color:var(--text-dim)">' + esc([custPicked.phone, custPicked.email].filter(Boolean).join(' · ')) + '</span></span><button class="mini-btn" onclick="custPicked=null;renderCustSearch()">CHANGE</button>';
+            return;
+        }
+        box.style.display = ''; picked.style.display = 'none';
+        if (!custIndex) return;
+        if (!custIndex.length) { box.innerHTML = '<div class="empty-note">No customers yet. Open the PC app and connect it once (Settings → Online sync) so its customer list appears here.</div>'; return; }
+        const q = fold(document.getElementById('cSearch').value.trim());
+        const words = q.split(/\s+/).filter(Boolean);
+        const hits = custIndex.filter(c => { const hay = fold(c.name + ' ' + (c.phone || '') + ' ' + (c.email || '')); return words.every(w => hay.indexOf(w) !== -1); });
+        if (!q) { box.innerHTML = '<div class="empty-note">Type a name, e.g. “Peter”. ' + custIndex.length + ' customers.</div>'; return; }
+        box.innerHTML = hits.length ? hits.slice(0, 40).map(c =>
+            '<div class="cust-row" onclick="pickCustomer(\'' + esc(c.id) + '\')"><b>' + esc(c.name) + '</b><span>' + esc([c.phone, c.email].filter(Boolean).join(' · ') || 'no contact details') + '</span></div>').join('')
+            : '<div class="empty-note">No customer found. Use “New customer”.</div>';
+    }
+    function pickCustomer(id) { custPicked = custIndex.find(c => c.id === id) || null; renderCustSearch(); }
+    async function closeSheetNext() {
+        const err = document.getElementById('closeErr'); err.textContent = '';
+        const ds = openDayStr;
+        if (closeStep === 1) {
+            if (!closeReason) { err.textContent = 'Choose a reason.'; return; }
+            if (closeReason === 'fully_booked') { showCloseStep(2); return; }
+        }
+        const v = id => document.getElementById(id).value.trim();
+        const closure = { date: ds, reason: closeReason, reasonLabel: reasonLabel(closeReason), note: v('closeNote'), state: 'active',
+            createdBy: auth.currentUser ? auth.currentUser.uid : '', createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+        if (closeReason === 'fully_booked') {
+            const booking = { kind: custKind, time: v('aTime'), description: v('aDesc'), bodyPart: v('aZone'),
+                price: parseFloat(v('aPrice')) || 0, deposit: parseFloat(v('aDeposit')) || 0, sessionNotes: v('aNotes') };
+            if (custKind === 'new') {
+                if (!v('cName')) { err.textContent = 'Fill in the full name.'; return; }
+                Object.assign(booking, { name: v('cName'), phone: v('cPhone'), email: v('cEmail'), birthDate: v('cBirth'), customerNotes: v('cNotes') });
+            } else {
+                if (!custPicked) { err.textContent = 'Search and pick the customer.'; return; }
+                Object.assign(booking, { customerId: custPicked.id, name: custPicked.name, phone: custPicked.phone || '', email: custPicked.email || '' });
+            }
+            closure.booking = booking;
+        }
+        const btn = document.getElementById('closeSave'); btn.disabled = true;
+        try {
+            const b = db.batch();
+            b.set(db.collection('blockedDays').doc(ds), { status: 'booked' });
+            b.set(db.collection('closures').doc(ds), closure);   // replaces an older (reopened) closure of this day
+            await b.commit();
+            document.getElementById('closeModal').classList.remove('active');
+            toast('<i class="fas fa-check"></i> ' + esc(niceDate(ds)) + ' closed · ' + esc(reasonLabel(closeReason)) + (closure.booking ? ' · goes to the PC app' : ''));
+        } catch (e) { err.textContent = 'Could not save: ' + (e.code || e.message); }
+        btn.disabled = false;
     }
     async function addDayTime(t) {
         if (!/^\d{2}:\d{2}$/.test(t || '')) { alert('Choose a time first.'); return; }
