@@ -219,6 +219,17 @@
         .cust-row span { color: var(--text-dim); font-size: 12px; }
         .cust-row:active { border-color: var(--accent); }
         .cust-picked { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--accent-warm); background: rgba(217,167,88,0.1); font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .pick-cal { background: var(--card2); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px; }
+        .pick-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .pick-head b { font-family: var(--font-display); font-weight: 400; letter-spacing: 2px; font-size: 16px; }
+        .pick-head .mini-btn { padding: 7px 12px; }
+        .pick-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .pick-wd { text-align: center; font-size: 9px; color: var(--text-dim); font-weight: 800; letter-spacing: 1px; padding: 2px 0; }
+        .pick-day { position: relative; aspect-ratio: 1/1; border-radius: 10px; border: 1px solid var(--card-border); background: var(--card); color: var(--text); font: 700 13px var(--font-body); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+        .pick-day.off { opacity: .25; pointer-events: none; }
+        .pick-day.closed { opacity: .45; pointer-events: none; text-decoration: line-through; }
+        .pick-day.sel { background: var(--accent-warm); border-color: var(--accent-warm); color: #150c22; }
+        .pick-day.sel::after { content: '\2713'; position: absolute; top: -6px; right: -6px; width: 17px; height: 17px; border-radius: 50%; background: #7be3a3; color: #0b2a17; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: 900; border: 2px solid var(--card); }
         .req-row { padding: 10px 12px; border-radius: 12px; background: var(--card2); border: 1px dashed var(--border-hover); cursor: pointer; font-size: 12px; }
         .req-row b { font-size: 14px; }
         .req-row.on { border-style: solid; border-color: var(--accent-warm); background: rgba(217,167,88,0.1); }
@@ -523,9 +534,16 @@
         <div id="closeStep1">
             <div class="reason-grid" id="reasonGrid"></div>
             <div id="rangeWrap" style="display:none;margin-top:14px">
-                <span class="sheet-label">Until and including</span>
-                <input type="date" id="closeUntil">
-                <div class="hint" id="rangeHint" style="font-size:11px;color:var(--text-dim)"></div>
+                <span class="sheet-label">Tap all the days to close</span>
+                <div class="pick-cal">
+                    <div class="pick-head">
+                        <button type="button" class="mini-btn" onclick="pickMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+                        <b id="pickMonthLbl"></b>
+                        <button type="button" class="mini-btn" onclick="pickMonth(1)"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="pick-grid" id="pickGrid"></div>
+                </div>
+                <div class="hint" id="rangeHint" style="font-size:12px;color:var(--text-soft);margin-top:8px;font-weight:700"></div>
             </div>
             <span class="sheet-label" style="margin-top:14px">Note <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></span>
             <input type="text" id="closeNote" maxlength="200" placeholder="e.g. guest spot in Ghent">
@@ -977,6 +995,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
     ];
     const BODY_ZONES = ["Head", "Neck", "Chest", "Ribs (right)", "Ribs (left)", "Stomach", "Hip (right)", "Hip (left)", "Shoulder (right)", "Shoulder (left)", "Upper arm (right)", "Upper arm (left)", "Forearm (right)", "Forearm (left)", "Hand (right)", "Hand (left)", "Thigh (right)", "Thigh (left)", "Calf (right)", "Calf (left)", "Foot (right)", "Foot (left)", "Upper back", "Lower back", "Throat", "Sternum", "Full back", "Full sleeve (left)", "Full sleeve (right)", "Other"];
     let closeReason = null, closeStep = 1, custKind = 'new', custPicked = null, custIndex = null, usedRequest = null;
+    let pickSel = new Set(), pickY = 0, pickM = 0;
     const RANGE_REASONS = ['holiday', 'amy'];
     function reasonLabel(k) { const r = CLOSE_REASONS.find(x => x.k === k); return r ? r.label : (k || ''); }
     async function toggleDayBlock() {
@@ -997,7 +1016,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
     }
     function openCloseSheet(ds) {
         closeReason = null; closeStep = 1; custKind = 'new'; custPicked = null; usedRequest = null;
-        document.getElementById('closeUntil').value = ds; document.getElementById('closeUntil').min = ds;
+        pickSel = new Set([ds]); { const [y, m] = ds.split('-').map(Number); pickY = y; pickM = m - 1; }
         ['closeNote', 'cName', 'cPhone', 'cEmail', 'cBirth', 'cNotes', 'cSearch', 'aTime', 'aDesc', 'aPrice', 'aDeposit', 'aNotes'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('aZone').innerHTML = '<option value="">— choose —</option>' + BODY_ZONES.map(z => '<option>' + esc(z) + '</option>').join('');
         document.getElementById('closeTitle').innerText = 'CLOSE ' + niceDate(ds).toUpperCase();
@@ -1020,21 +1039,36 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         closeReason = k;
         document.querySelectorAll('.reason-btn').forEach(b => b.classList.toggle('active', b.dataset.r === k));
         document.getElementById('rangeWrap').style.display = RANGE_REASONS.includes(k) ? '' : 'none';
-        updateRangeHint();
+        document.getElementById('closeSave').disabled = false;
+        if (RANGE_REASONS.includes(k)) renderPickCal();
         showCloseStep(1);
     }
     function addDays(ds, n) { const [y, m, d] = ds.split('-').map(Number); const x = new Date(y, m - 1, d + n); return x.getFullYear() + '-' + pad2(x.getMonth() + 1) + '-' + pad2(x.getDate()); }
     function closeDates() {
         const ds = openDayStr; if (!RANGE_REASONS.includes(closeReason)) return [ds];
-        const until = document.getElementById('closeUntil').value || ds;
-        const out = []; for (let d = ds; d <= until && out.length < 62; d = addDays(d, 1)) out.push(d);
-        return out.length ? out : [ds];
+        return Array.from(pickSel).sort();
     }
     function updateRangeHint() {
-        const n = closeDates().length, skip = closeDates().filter(d => blockedDates.has(d)).length;
-        document.getElementById('rangeHint').innerText = n === 1 ? 'Only this day.' : n + ' days' + (skip ? ' (' + skip + ' already closed, skipped)' : '');
+        const n = pickSel.size;
+        document.getElementById('rangeHint').innerText = n === 0 ? 'No day selected.' : n === 1 ? '1 day selected' : n + ' days selected';
+        const save = document.getElementById('closeSave'); if (save && closeStep === 1) save.disabled = n === 0 && RANGE_REASONS.includes(closeReason);
     }
-    document.addEventListener('change', e => { if (e.target && e.target.id === 'closeUntil') updateRangeHint(); });
+    function pickMonth(dir) { pickM += dir; if (pickM > 11) { pickM = 0; pickY++; } if (pickM < 0) { pickM = 11; pickY--; } renderPickCal(); }
+    function renderPickCal() {
+        const names = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+        document.getElementById('pickMonthLbl').innerText = names[pickM] + ' ' + pickY;
+        const first = new Date(pickY, pickM, 1).getDay(), shift = first === 0 ? 6 : first - 1, total = new Date(pickY, pickM + 1, 0).getDate(), t0 = todayStr();
+        let html = ['MO','TU','WE','TH','FR','SA','SU'].map(w => '<div class="pick-wd">' + w + '</div>').join('');
+        for (let i = 0; i < shift; i++) html += '<div></div>';
+        for (let d = 1; d <= total; d++) {
+            const id = pickY + '-' + pad2(pickM + 1) + '-' + pad2(d);
+            const cls = id < t0 ? 'off' : (blockedDates.has(id) && id !== openDayStr ? 'closed' : (pickSel.has(id) ? 'sel' : ''));
+            html += '<button type="button" class="pick-day ' + cls + '" onclick="togglePick(\'' + id + '\')">' + d + '</button>';
+        }
+        document.getElementById('pickGrid').innerHTML = html;
+        updateRangeHint();
+    }
+    function togglePick(id) { if (pickSel.has(id)) pickSel.delete(id); else pickSel.add(id); renderPickCal(); }
     // ---- website requests as a shortcut ----
     function renderRequestPick() {
         const ds = openDayStr, t0 = todayStr();
@@ -1137,6 +1171,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         const btn = document.getElementById('closeSave'); btn.disabled = true;
         try {
             const days = closeDates().filter(d => d === ds || !blockedDates.has(d));
+            if (!days.length) { err.textContent = 'Select at least one day.'; btn.disabled = false; return; }
             const b = db.batch();
             days.forEach(d => {
                 b.set(db.collection('blockedDays').doc(d), { status: 'booked' });
