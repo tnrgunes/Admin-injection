@@ -219,6 +219,10 @@
         .cust-row span { color: var(--text-dim); font-size: 12px; }
         .cust-row:active { border-color: var(--accent); }
         .cust-picked { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--accent-warm); background: rgba(217,167,88,0.1); font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .req-row { padding: 10px 12px; border-radius: 12px; background: var(--card2); border: 1px dashed var(--border-hover); cursor: pointer; font-size: 12px; }
+        .req-row b { font-size: 14px; }
+        .req-row.on { border-style: solid; border-color: var(--accent-warm); background: rgba(217,167,88,0.1); }
+        .req-row .rq-date { float: right; color: var(--accent-soft); font-weight: 800; font-size: 11px; }
         .day-reason { display: block; font-size: 11px; color: var(--accent-warm); margin-top: 3px; font-weight: 700; }
         .icon-btn.on { color: var(--accent-warm); border-color: rgba(217,167,88,0.5); }
         .toast { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translate(-50%, -150%); z-index: 10001; padding: 12px 18px; border-radius: 14px; background: var(--card2); border: 1px solid var(--accent-warm); color: #fff; font-size: 13px; font-weight: 700; box-shadow: 0 10px 30px rgba(0,0,0,.5); transition: transform .35s ease; max-width: 90vw; cursor: pointer; }
@@ -518,10 +522,19 @@
         <div class="sheet-sub" id="closeSub">Why is this day closed? Customers only see that the day is not available.</div>
         <div id="closeStep1">
             <div class="reason-grid" id="reasonGrid"></div>
+            <div id="rangeWrap" style="display:none;margin-top:14px">
+                <span class="sheet-label">Until and including</span>
+                <input type="date" id="closeUntil">
+                <div class="hint" id="rangeHint" style="font-size:11px;color:var(--text-dim)"></div>
+            </div>
             <span class="sheet-label" style="margin-top:14px">Note <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></span>
             <input type="text" id="closeNote" maxlength="200" placeholder="e.g. guest spot in Ghent">
         </div>
         <div id="closeStep2" style="display:none">
+            <div id="reqPickWrap" style="display:none;margin-bottom:16px">
+                <span class="sheet-label">Fill in from a website request</span>
+                <div id="reqPick" class="cust-results"></div>
+            </div>
             <div class="segmented" style="margin-bottom:14px">
                 <button class="seg-btn active" id="cNewBtn" onclick="setCustKind('new')">New customer</button>
                 <button class="seg-btn" id="cOldBtn" onclick="setCustKind('existing')">Existing customer</button>
@@ -963,7 +976,8 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         { k: 'other', label: 'Other', ic: 'fa-ellipsis' }
     ];
     const BODY_ZONES = ["Head", "Neck", "Chest", "Ribs (right)", "Ribs (left)", "Stomach", "Hip (right)", "Hip (left)", "Shoulder (right)", "Shoulder (left)", "Upper arm (right)", "Upper arm (left)", "Forearm (right)", "Forearm (left)", "Hand (right)", "Hand (left)", "Thigh (right)", "Thigh (left)", "Calf (right)", "Calf (left)", "Foot (right)", "Foot (left)", "Upper back", "Lower back", "Throat", "Sternum", "Full back", "Full sleeve (left)", "Full sleeve (right)", "Other"];
-    let closeReason = null, closeStep = 1, custKind = 'new', custPicked = null, custIndex = null;
+    let closeReason = null, closeStep = 1, custKind = 'new', custPicked = null, custIndex = null, usedRequest = null;
+    const RANGE_REASONS = ['holiday', 'amy'];
     function reasonLabel(k) { const r = CLOSE_REASONS.find(x => x.k === k); return r ? r.label : (k || ''); }
     async function toggleDayBlock() {
         const ds = openDayStr, blocked = blockedDates.has(ds);
@@ -982,7 +996,8 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         openCloseSheet(ds);
     }
     function openCloseSheet(ds) {
-        closeReason = null; closeStep = 1; custKind = 'new'; custPicked = null;
+        closeReason = null; closeStep = 1; custKind = 'new'; custPicked = null; usedRequest = null;
+        document.getElementById('closeUntil').value = ds; document.getElementById('closeUntil').min = ds;
         ['closeNote', 'cName', 'cPhone', 'cEmail', 'cBirth', 'cNotes', 'cSearch', 'aTime', 'aDesc', 'aPrice', 'aDeposit', 'aNotes'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('aZone').innerHTML = '<option value="">— choose —</option>' + BODY_ZONES.map(z => '<option>' + esc(z) + '</option>').join('');
         document.getElementById('closeTitle').innerText = 'CLOSE ' + niceDate(ds).toUpperCase();
@@ -1004,7 +1019,52 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
     function pickReason(k) {
         closeReason = k;
         document.querySelectorAll('.reason-btn').forEach(b => b.classList.toggle('active', b.dataset.r === k));
+        document.getElementById('rangeWrap').style.display = RANGE_REASONS.includes(k) ? '' : 'none';
+        updateRangeHint();
         showCloseStep(1);
+    }
+    function addDays(ds, n) { const [y, m, d] = ds.split('-').map(Number); const x = new Date(y, m - 1, d + n); return x.getFullYear() + '-' + pad2(x.getMonth() + 1) + '-' + pad2(x.getDate()); }
+    function closeDates() {
+        const ds = openDayStr; if (!RANGE_REASONS.includes(closeReason)) return [ds];
+        const until = document.getElementById('closeUntil').value || ds;
+        const out = []; for (let d = ds; d <= until && out.length < 62; d = addDays(d, 1)) out.push(d);
+        return out.length ? out : [ds];
+    }
+    function updateRangeHint() {
+        const n = closeDates().length, skip = closeDates().filter(d => blockedDates.has(d)).length;
+        document.getElementById('rangeHint').innerText = n === 1 ? 'Only this day.' : n + ' days' + (skip ? ' (' + skip + ' already closed, skipped)' : '');
+    }
+    document.addEventListener('change', e => { if (e.target && e.target.id === 'closeUntil') updateRangeHint(); });
+    // ---- website requests as a shortcut ----
+    function renderRequestPick() {
+        const ds = openDayStr, t0 = todayStr();
+        const list = appointments.filter(a => (a.status === 'pending' || a.status === 'confirmed') && a.date >= t0)
+            .sort((a, b) => ((a.date === ds ? '0' : '1') + a.date + (a.time || '')).localeCompare((b.date === ds ? '0' : '1') + b.date + (b.time || '')));
+        document.getElementById('reqPickWrap').style.display = list.length ? '' : 'none';
+        document.getElementById('reqPick').innerHTML = list.slice(0, 12).map(a =>
+            '<div class="req-row' + (usedRequest === a.id ? ' on' : '') + '" onclick="useRequest(\'' + a.id + '\')"><span class="rq-date">' + esc(a.date === ds ? 'THIS DAY' : a.date) + (a.time ? ' · ' + esc(a.time) : '') + '</span><b>' + esc(a.name) + '</b><br>' +
+            esc([SIZE_LABEL[a.size] || a.size, a.placement].filter(Boolean).join(' · ')) + (a.hasPhotos ? ' · 📷' : '') + '</div>').join('');
+    }
+    const digits = s => String(s || '').replace(/\D/g, '').replace(/^0032/, '0').replace(/^32/, '0');
+    async function useRequest(id) {
+        const a = appointments.find(x => x.id === id); if (!a) return;
+        usedRequest = id;
+        await loadCustIndexQuiet();
+        const ph = digits(a.phone), em = String(a.email || '').toLowerCase();
+        const match = (custIndex || []).find(c => (ph.length >= 8 && digits(c.phone) === ph) || (em && String(c.email || '').toLowerCase() === em));
+        const set = (k, v) => { document.getElementById(k).value = v || ''; };
+        set('cName', a.name); set('cPhone', a.phone); set('cEmail', a.email); set('cBirth', ''); set('cNotes', '');
+        set('aTime', a.time);
+        const zone = BODY_ZONES.find(z => fold(z) === fold(a.placement)) || '';
+        document.getElementById('aZone').value = zone;
+        set('aDesc', [SIZE_LABEL[a.size] || '', !zone && a.placement ? 'placement: ' + a.placement : '', a.description || ''].filter(Boolean).join('\n'));
+        if (match) { custPicked = match; setCustKind('existing'); renderCustSearch(); toast('Existing customer found: ' + esc(match.name)); }
+        else { custPicked = null; setCustKind('new'); }
+        renderRequestPick();
+    }
+    async function loadCustIndexQuiet() {
+        if (custIndex) return;
+        try { const sn = await db.collection('customerIndex').get(); custIndex = []; sn.forEach(d => custIndex.push(Object.assign({ id: d.id }, d.data()))); custIndex.sort((a, b) => (a.name || '').localeCompare(b.name || '')); } catch (e) {}
     }
     function closeSheetBack() {
         if (closeStep === 2) { showCloseStep(1); return; }
@@ -1053,7 +1113,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         const ds = openDayStr;
         if (closeStep === 1) {
             if (!closeReason) { err.textContent = 'Choose a reason.'; return; }
-            if (closeReason === 'fully_booked') { showCloseStep(2); return; }
+            if (closeReason === 'fully_booked') { showCloseStep(2); renderRequestPick(); return; }
         }
         const v = id => document.getElementById(id).value.trim();
         const closure = { date: ds, reason: closeReason, reasonLabel: reasonLabel(closeReason), note: v('closeNote'), state: 'active',
@@ -1068,16 +1128,23 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
                 if (!custPicked) { err.textContent = 'Search and pick the customer.'; return; }
                 Object.assign(booking, { customerId: custPicked.id, name: custPicked.name, phone: custPicked.phone || '', email: custPicked.email || '' });
             }
+            if (usedRequest) {
+                const rq = appointments.find(x => x.id === usedRequest);
+                booking.requestId = usedRequest; booking.hasPhotos = !!(rq && rq.hasPhotos);
+            }
             closure.booking = booking;
         }
         const btn = document.getElementById('closeSave'); btn.disabled = true;
         try {
+            const days = closeDates().filter(d => d === ds || !blockedDates.has(d));
             const b = db.batch();
-            b.set(db.collection('blockedDays').doc(ds), { status: 'booked' });
-            b.set(db.collection('closures').doc(ds), closure);   // replaces an older (reopened) closure of this day
+            days.forEach(d => {
+                b.set(db.collection('blockedDays').doc(d), { status: 'booked' });
+                b.set(db.collection('closures').doc(d), Object.assign({}, closure, { date: d }));   // replaces an older (reopened) closure
+            });
             await b.commit();
             document.getElementById('closeModal').classList.remove('active');
-            toast('<i class="fas fa-check"></i> ' + esc(niceDate(ds)) + ' closed · ' + esc(reasonLabel(closeReason)) + (closure.booking ? ' · goes to the PC app' : ''));
+            toast('<i class="fas fa-check"></i> ' + (days.length > 1 ? days.length + ' days' : esc(niceDate(ds))) + ' closed · ' + esc(reasonLabel(closeReason)) + (closure.booking ? ' · goes to the PC app' : ''));
         } catch (e) { err.textContent = 'Could not save: ' + (e.code || e.message); }
         btn.disabled = false;
     }
@@ -1164,7 +1231,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
     }
 
     // ===== WEBSITE CONTENT (settings/site) =====
-    const SITE_DEFAULTS = {"about": {"nl": "Hoi, ik ben **Talitha**! Welkom bij **Inkjection**, mijn privéstudio waar **hygiëne** en **precisie** topprioriteiten zijn. Ik geloof dat een tatoeage meer is dan alleen inkt; het is **jouw verhaal**. Daarom besteed ik aandacht aan elk detail van je wensen en werk ik creatief samen om je ideeën naar een hoger niveau te tillen. Mijn doel is om je gelukkiger te maken dan je had verwacht, met een uniek kunstwerk waar je een leven lang trots op zult zijn.", "en": "Hi, I'm **Talitha**! Welcome to **Inkjection**, my private studio where **hygiene** and **precision** are top priorities. I believe a tattoo is more than just ink; it's **your story**. That's why I pay attention to every single detail of your wishes and collaborate creatively to elevate your ideas. My goal? To make you happier than you expected with a unique piece of art you'll be proud of for a lifetime."}, "aftercare": {"nl": "**Eerste 3-5 dagen:** Laat de folie zitten zoals geadviseerd. Was daarna voorzichtig met lauw water en neutrale zeep.\n\n**Hydratatie:** Breng 2-3x per dag een dun laagje nazorgzalf aan.\n\n**Niet doen:** Niet krabben, vermijd zwemmen, sauna en direct zonlicht voor minstens 3 weken.", "en": "**First 3-5 days:** Keep the foil as advised. Then wash gently with lukewarm water and neutral soap.\n\n**Hydration:** Apply a thin layer of aftercare ointment 2-3x a day.\n\n**Don'ts:** No scratching, avoid swimming, saunas, and direct sunlight for at least 3 weeks."}, "trust": {"nl": "5.0 — Geliefde studio in de Kempen", "en": "5.0 — Beloved studio in the Kempen"}, "heroTagline": {"nl": "Fine Line, Old School & Realism", "en": "Fine Line, Old School & Realism"}, "heroSub": {"nl": "Zandhoven • Antwerpen", "en": "Zandhoven • Antwerpen"}, "prices": {"small": {"nl": "Vanaf €80", "en": "From €80"}, "medium": {"nl": "Vanaf €120", "en": "From €120"}, "large": {"nl": "Op afspraak", "en": "On request"}}, "contact": {"email": "Inkjection.tattoo95@gmail.com", "whatsapp": "32476633794", "phoneDisplay": "+32 476 63 37 94", "address": "Torenstraat 32, 2243 Zandhoven", "instagram": "https://www.instagram.com/inkj.ection/", "tiktok": "https://www.tiktok.com/@inkjection.tattoo", "facebook": "https://www.facebook.com/share/1XPw4Fx861/"}, "announcement": {"on": false, "nl": "", "en": ""}, "booking": {"enabled": true, "monthsAhead": 2, "largeWeekendOnly": true}, "gift": {"amounts": [50, 100, 250]}, "theme": {"halloween": true}};
+    const SITE_DEFAULTS = {"about": {"nl": "Hoi, ik ben **Talitha**! Welkom bij **Inkjection**, mijn privéstudio waar **hygiëne** en **precisie** topprioriteiten zijn. Ik geloof dat een tatoeage meer is dan alleen inkt; het is **jouw verhaal**. Daarom besteed ik aandacht aan elk detail van je wensen en werk ik creatief samen om je ideeën naar een hoger niveau te tillen. Mijn doel is om je gelukkiger te maken dan je had verwacht, met een uniek kunstwerk waar je een leven lang trots op zult zijn.", "en": "Hi, I'm **Talitha**! Welcome to **Inkjection**, my private studio where **hygiene** and **precision** are top priorities. I believe a tattoo is more than just ink; it's **your story**. That's why I pay attention to every single detail of your wishes and collaborate creatively to elevate your ideas. My goal? To make you happier than you expected with a unique piece of art you'll be proud of for a lifetime."}, "aftercare": {"nl": "**Eerste 3-5 dagen:** Laat de folie zitten zoals geadviseerd. Was daarna voorzichtig met lauw water en neutrale zeep.\n\n**Hydratatie:** Breng 2-3x per dag een dun laagje nazorgzalf aan.\n\n**Niet doen:** Niet krabben, vermijd zwemmen, sauna en direct zonlicht voor minstens 3 weken.", "en": "**First 3-5 days:** Keep the foil as advised. Then wash gently with lukewarm water and neutral soap.\n\n**Hydration:** Apply a thin layer of aftercare ointment 2-3x a day.\n\n**Don'ts:** No scratching, avoid swimming, saunas, and direct sunlight for at least 3 weeks."}, "trust": {"nl": "5.0 — Geliefde studio in de Kempen", "en": "5.0 — Beloved studio in the Kempen"}, "heroTagline": {"nl": "Fine Line, Old School & Realism", "en": "Fine Line, Old School & Realism"}, "heroSub": {"nl": "Zandhoven • Antwerpen", "en": "Zandhoven • Antwerpen"}, "prices": {"small": {"nl": "Vanaf €80", "en": "From €80"}, "medium": {"nl": "Vanaf €120", "en": "From €120"}, "large": {"nl": "Op afspraak", "en": "On request"}}, "contact": {"email": "Inkjection.tattoo95@gmail.com", "whatsapp": "32476633794", "phoneDisplay": "+32 476 63 37 94", "address": "Torenstraat 32, 2243 Zandhoven", "instagram": "https://www.instagram.com/inkj.ection/", "tiktok": "https://www.tiktok.com/@inkjection.tattoo", "facebook": "https://www.facebook.com/share/1XPw4Fx861/"}, "announcement": {"on": false, "nl": "", "en": ""}, "booking": {"enabled": true, "monthsAhead": 2, "largeWeekendOnly": true, "monthsVisible": 3, "extraAfter20": false}, "gift": {"amounts": [50, 100, 250]}, "theme": {"halloween": true}};
     const SITE_FORM = [
         { t: 'Announcement bar', ic: 'fa-bullhorn', f: [
             { k: 'announcement.on', type: 'toggle', label: 'Show a message at the top of the website' },
@@ -1190,7 +1257,8 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         { t: 'Booking', ic: 'fa-calendar-check', f: [
             { k: 'booking.enabled', type: 'toggle', label: 'Online booking form (off = customers go to WhatsApp)' },
             { k: 'booking.largeWeekendOnly', type: 'toggle', label: 'Large tattoos only on Saturday & Sunday' },
-            { k: 'booking.monthsAhead', type: 'number', label: 'How many months ahead can customers book?', hint: 'From the 20th of the month one extra month opens.' } ] },
+            { k: 'booking.monthsVisible', type: 'select', label: 'How many months can customers see in the calendar?', options: monthOptions, hint: 'Counted from this month.' },
+            { k: 'booking.extraAfter20', type: 'toggle', label: 'From the 20th, also open the next month' } ] },
         { t: 'Gift voucher', ic: 'fa-gift', f: [
             { k: 'gift.amounts', type: 'list', label: 'Amounts (€)', hint: 'Separate with commas, e.g. 50, 100, 250' } ] },
         { t: 'Aftercare', ic: 'fa-hand-holding-medical', f: [
@@ -1198,6 +1266,10 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         { t: 'Theme', ic: 'fa-wand-magic-sparkles', f: [
             { k: 'theme.halloween', type: 'toggle', label: 'Halloween decorations (skeleton, spider, pumpkin…)' } ] }
     ];
+    function monthOptions() {
+        const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], m0 = new Date().getMonth();
+        return [1, 2, 3, 4, 5, 6].map(n => ({ v: n, label: n + (n === 1 ? ' month' : ' months') + ' (' + names[m0] + (n > 1 ? ' – ' + names[(m0 + n - 1) % 12] : '') + ')' }));
+    }
     let siteData = null, siteDirty = false;
     const getPath = (o, path) => path.split('.').reduce((x, k) => (x && x[k] !== undefined) ? x[k] : undefined, o);
     function setPath(o, path, v) { const ks = path.split('.'); let x = o; ks.slice(0, -1).forEach(k => { if (typeof x[k] !== 'object' || x[k] === null) x[k] = {}; x = x[k]; }); x[ks[ks.length - 1]] = v; }
@@ -1225,12 +1297,13 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
                         return '<div class="lang-in"><em>' + L.toUpperCase() + '</em>' + (f.multi ? '<textarea rows="5" data-k="' + f.k + '.' + L + '">' + val + '</textarea>' : '<input type="text" data-k="' + f.k + '.' + L + '" value="' + val + '">') + '</div>';
                     }).join('') + '</div>';
                 } else if (f.type === 'list') inner = '<input type="text" data-k="' + f.k + '" data-type="list" value="' + esc((v || []).join(', ')) + '">';
+                else if (f.type === 'select') inner = '<select data-k="' + f.k + '" data-type="number">' + f.options().map(o => '<option value="' + o.v + '"' + (+v === o.v ? ' selected' : '') + '>' + esc(o.label) + '</option>').join('') + '</select>';
                 else if (f.type === 'number') inner = '<input type="number" min="1" max="12" data-k="' + f.k + '" data-type="number" value="' + esc(v) + '">';
                 else inner = '<input type="text" data-k="' + f.k + '" value="' + esc(v || '') + '">';
                 return '<div class="fld"><label>' + esc(f.label) + '</label>' + inner + (f.hint ? '<div class="hint">' + esc(f.hint) + '</div>' : '') + '</div>';
             }).join('') + '</div></details>').join('');
         box.querySelectorAll('[data-k]').forEach(inp => {
-            const ev = inp.type === 'checkbox' ? 'change' : 'input';
+            const ev = (inp.type === 'checkbox' || inp.tagName === 'SELECT') ? 'change' : 'input';
             inp.addEventListener(ev, () => {
                 let v = inp.type === 'checkbox' ? inp.checked : inp.value;
                 if (inp.dataset.type === 'list') v = inp.value.split(/[,;\s]+/).map(x => parseInt(x, 10)).filter(x => x > 0);
