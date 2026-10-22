@@ -199,6 +199,35 @@
         .nav-btn.active i { transform: translateY(-1px); }
         .nav-btn.active::before { content: ''; position: absolute; top: -9px; left: 30%; right: 30%; height: 2px; border-radius: 2px; background: var(--grad); }
         .nav-btn .tab-badge { top: 0; right: calc(50% - 22px); font-style: normal; }
+        /* ---------- STATS TAB ---------- */
+        .st-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+        .st-kpi { background: var(--card); border: 1px solid var(--card-border); border-radius: 18px; padding: 14px 14px 12px; }
+        .st-kpi b { display: block; font: 300 30px/1.1 var(--font-display); color: #fff; letter-spacing: 1px; }
+        .st-kpi span { display: block; font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-dim); font-weight: 800; margin-top: 4px; }
+        .st-kpi em { display: block; font-style: normal; font-size: 11px; color: var(--accent-soft); margin-top: 3px; }
+        .st-card { background: var(--card); border: 1px solid var(--card-border); border-radius: 18px; padding: 16px; margin-bottom: 14px; }
+        .st-card h4 { margin: 0 0 12px; font-size: 10px; letter-spacing: 2px; color: var(--accent-soft); font-weight: 800; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+        .st-card h4 small { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 600; color: var(--text-dim); font-size: 11px; }
+        .st-row { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 10px; margin: 9px 0; font-size: 13px; }
+        .st-row i { color: var(--accent-warm); text-align: center; }
+        .st-row .lbl { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+        .st-row .lbl span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .st-bar { height: 6px; border-radius: 6px; background: rgba(255,255,255,.06); overflow: hidden; }
+        .st-bar > div { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--accent), var(--accent-warm)); }
+        .st-row .val { font-weight: 800; font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+        .st-row .val small { display: block; font-weight: 600; color: var(--text-dim); font-size: 10px; }
+        .st-cols { display: flex; align-items: flex-end; gap: 3px; height: 110px; padding-top: 6px; }
+        .st-cols > div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+        .st-cols > div > i { display: block; width: 100%; max-width: 22px; border-radius: 4px 4px 1px 1px; background: linear-gradient(180deg, var(--accent-warm), var(--accent)); min-height: 2px; }
+        .st-cols > div > i.zero { background: rgba(255,255,255,.07); }
+        .st-cols > div > span { font-size: 9px; color: var(--text-dim); margin-top: 5px; height: 11px; font-variant-numeric: tabular-nums; }
+        .st-funnel { display: flex; flex-direction: column; gap: 8px; }
+        .st-step { position: relative; border-radius: 12px; padding: 10px 12px; background: rgba(255,255,255,.04); overflow: hidden; display: flex; justify-content: space-between; font-size: 13px; }
+        .st-step > div { position: absolute; inset: 0 auto 0 0; background: var(--accent-glow); border-right: 2px solid var(--accent); }
+        .st-step span, .st-step b { position: relative; }
+        .st-empty { text-align: center; color: var(--text-dim); font-size: 13px; padding: 30px 10px; line-height: 1.6; }
+        .st-note { font-size: 11px; color: var(--text-dim); line-height: 1.6; margin: 4px 2px 14px; }
+        .st-note a { color: var(--accent-soft); }
         .segmented { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--card); border: 1px solid var(--card-border); margin-bottom: 18px; }
         .seg-btn { flex: 1; padding: 10px 4px; border-radius: 10px; border: none; background: none; color: var(--text-dim); font: 700 12px var(--font-body); cursor: pointer; }
         .seg-btn.active { background: var(--grad); color: #150c22; }
@@ -498,6 +527,18 @@
         </div>
     </div>
 
+    <!-- STATS -->
+    <div id="tab-stats" class="section">
+        <div class="segmented" id="stRange">
+            <button class="seg-btn active" data-r="1" onclick="setStatsRange(1)">Today</button>
+            <button class="seg-btn" data-r="7" onclick="setStatsRange(7)">7 days</button>
+            <button class="seg-btn" data-r="30" onclick="setStatsRange(30)">30 days</button>
+            <button class="seg-btn" data-r="90" onclick="setStatsRange(90)">90 days</button>
+        </div>
+        <div id="statsBody"><div class="st-empty"><i class="fas fa-spinner fa-spin"></i></div></div>
+        <p class="st-note">Anonymous: no names, no IP addresses, no cookies. Your own visits are counted too, unless you open <a href="https://inkjection.be/?nostats" target="_blank">inkjection.be/?nostats</a> once on each of your phones and computers.</p>
+    </div>
+
     <!-- REVIEWS -->
     <div id="tab-reviews" class="section">
         <div class="media-box">
@@ -524,6 +565,7 @@
     <button class="nav-btn" data-tab="tab-site" onclick="switchTab('tab-site')"><i class="fas fa-pen-nib"></i><span>Website</span></button>
     <button class="nav-btn" data-tab="tab-media" onclick="switchTab('tab-media')"><i class="fas fa-images"></i><span>Media</span></button>
     <button class="nav-btn" data-tab="tab-reviews" onclick="switchTab('tab-reviews')"><i class="fas fa-star"></i><span>Reviews</span></button>
+    <button class="nav-btn" data-tab="tab-stats" onclick="switchTab('tab-stats')"><i class="fas fa-chart-simple"></i><span>Stats</span></button>
 </nav>
 
 <!-- CLOSE DAY SHEET -->
@@ -969,7 +1011,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         st.innerText = blocked ? 'CLOSED' : 'OPEN'; st.className = blocked ? 'closed' : 'open';
         const cl = blocked && closures[ds] && closures[ds].state !== 'reopened' ? closures[ds] : null;
         document.getElementById('dayReason').innerHTML = cl ? esc(cl.reasonLabel || reasonLabel(cl.reason)) + (cl.note ? ' · ' + esc(cl.note) : '') +
-            (cl.booking ? '<br>' + esc(cl.booking.name || '') + (cl.booking.time ? ' · ' + esc(cl.booking.time) : '') + ' · ' + (cl.sync && cl.sync.sessionId ? 'in PC app ✓' : 'waiting for PC app') : '') : '';
+            (cl.booking ? '<br>' + esc(cl.booking.name || '') + (cl.booking.time ? ' · ' + esc(cl.booking.time) : '') + ' · ' + (cl.sync && cl.sync.sessionId ? 'added to PC app ✓' : 'goes to the PC app next time it opens') : '') : '';
         const tb = document.getElementById('dayToggleBtn');
         tb.innerText = blocked ? 'OPEN DAY' : 'CLOSE DAY'; tb.className = 'mini-btn ' + (blocked ? 'ok' : 'danger');
         document.getElementById('dayTimesWrap').style.display = blocked ? 'none' : 'block';
@@ -1179,7 +1221,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
             });
             await b.commit();
             document.getElementById('closeModal').classList.remove('active');
-            toast('<i class="fas fa-check"></i> ' + (days.length > 1 ? days.length + ' days' : esc(niceDate(ds))) + ' closed · ' + esc(reasonLabel(closeReason)) + (closure.booking ? ' · goes to the PC app' : ''));
+            toast('<i class="fas fa-check"></i> ' + (days.length > 1 ? days.length + ' days' : esc(niceDate(ds))) + ' closed · ' + esc(reasonLabel(closeReason)) + (closure.booking ? ' · added to the PC app when it opens' : ''));
         } catch (e) { err.textContent = 'Could not save: ' + (e.code || e.message); }
         btn.disabled = false;
     }
@@ -1266,7 +1308,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
     }
 
     // ===== WEBSITE CONTENT (settings/site) =====
-    const SITE_DEFAULTS = {"about": {"nl": "Hoi, ik ben **Talitha**! Welkom bij **Inkjection**, mijn privéstudio waar **hygiëne** en **precisie** topprioriteiten zijn. Ik geloof dat een tatoeage meer is dan alleen inkt; het is **jouw verhaal**. Daarom besteed ik aandacht aan elk detail van je wensen en werk ik creatief samen om je ideeën naar een hoger niveau te tillen. Mijn doel is om je gelukkiger te maken dan je had verwacht, met een uniek kunstwerk waar je een leven lang trots op zult zijn.", "en": "Hi, I'm **Talitha**! Welcome to **Inkjection**, my private studio where **hygiene** and **precision** are top priorities. I believe a tattoo is more than just ink; it's **your story**. That's why I pay attention to every single detail of your wishes and collaborate creatively to elevate your ideas. My goal? To make you happier than you expected with a unique piece of art you'll be proud of for a lifetime."}, "aftercare": {"nl": "**Eerste 3-5 dagen:** Laat de folie zitten zoals geadviseerd. Was daarna voorzichtig met lauw water en neutrale zeep.\n\n**Hydratatie:** Breng 2-3x per dag een dun laagje nazorgzalf aan.\n\n**Niet doen:** Niet krabben, vermijd zwemmen, sauna en direct zonlicht voor minstens 3 weken.", "en": "**First 3-5 days:** Keep the foil as advised. Then wash gently with lukewarm water and neutral soap.\n\n**Hydration:** Apply a thin layer of aftercare ointment 2-3x a day.\n\n**Don'ts:** No scratching, avoid swimming, saunas, and direct sunlight for at least 3 weeks."}, "trust": {"nl": "5.0 — Geliefde studio in de Kempen", "en": "5.0 — Beloved studio in the Kempen"}, "heroTagline": {"nl": "Fine Line, Old School & Realism", "en": "Fine Line, Old School & Realism"}, "heroSub": {"nl": "Zandhoven • Antwerpen", "en": "Zandhoven • Antwerpen"}, "prices": {"small": {"nl": "Vanaf €80", "en": "From €80"}, "medium": {"nl": "Vanaf €120", "en": "From €120"}, "large": {"nl": "Op afspraak", "en": "On request"}}, "contact": {"email": "Inkjection.tattoo95@gmail.com", "whatsapp": "32476633794", "phoneDisplay": "+32 476 63 37 94", "address": "Torenstraat 32, 2243 Zandhoven", "instagram": "https://www.instagram.com/inkj.ection/", "tiktok": "https://www.tiktok.com/@inkjection.tattoo", "facebook": "https://www.facebook.com/share/1XPw4Fx861/"}, "announcement": {"on": false, "nl": "", "en": ""}, "booking": {"enabled": true, "monthsAhead": 2, "largeWeekendOnly": true, "monthsVisible": 3, "extraAfter20": false}, "gift": {"amounts": [50, 100, 250]}, "theme": {"halloween": true}};
+    const SITE_DEFAULTS = {"about": {"nl": "Hoi, ik ben **Talitha**! Welkom bij **Inkjection**, mijn privéstudio waar **hygiëne** en **precisie** topprioriteiten zijn. Ik geloof dat een tatoeage meer is dan alleen inkt; het is **jouw verhaal**. Daarom besteed ik aandacht aan elk detail van je wensen en werk ik creatief samen om je ideeën naar een hoger niveau te tillen. Mijn doel is om je gelukkiger te maken dan je had verwacht, met een uniek kunstwerk waar je een leven lang trots op zult zijn.", "en": "Hi, I'm **Talitha**! Welcome to **Inkjection**, my private studio where **hygiene** and **precision** are top priorities. I believe a tattoo is more than just ink; it's **your story**. That's why I pay attention to every single detail of your wishes and collaborate creatively to elevate your ideas. My goal? To make you happier than you expected with a unique piece of art you'll be proud of for a lifetime."}, "aftercare": {"nl": "**Eerste 3-5 dagen:** Laat de folie zitten zoals geadviseerd. Was daarna voorzichtig met lauw water en neutrale zeep.\n\n**Hydratatie:** Breng 2-3x per dag een dun laagje nazorgzalf aan.\n\n**Niet doen:** Niet krabben, vermijd zwemmen, sauna en direct zonlicht voor minstens 3 weken.", "en": "**First 3-5 days:** Keep the foil as advised. Then wash gently with lukewarm water and neutral soap.\n\n**Hydration:** Apply a thin layer of aftercare ointment 2-3x a day.\n\n**Don'ts:** No scratching, avoid swimming, saunas, and direct sunlight for at least 3 weeks."}, "trust": {"nl": "5.0 — Geliefde studio in de Kempen", "en": "5.0 — Beloved studio in the Kempen"}, "heroTagline": {"nl": "Fine Line, Old School & Realism", "en": "Fine Line, Old School & Realism"}, "heroSub": {"nl": "Zandhoven • Antwerpen", "en": "Zandhoven • Antwerpen"}, "prices": {"small": {"nl": "Vanaf €80", "en": "From €80"}, "medium": {"nl": "Vanaf €120", "en": "From €120"}, "large": {"nl": "Op afspraak", "en": "On request"}}, "contact": {"email": "info@inkjection.be", "whatsapp": "32476633794", "phoneDisplay": "+32 476 63 37 94", "address": "Torenstraat 32, 2243 Zandhoven", "instagram": "https://www.instagram.com/inkj.ection/", "tiktok": "https://www.tiktok.com/@inkjection.tattoo", "facebook": "https://www.facebook.com/share/1XPw4Fx861/"}, "announcement": {"on": false, "nl": "", "en": ""}, "booking": {"enabled": true, "monthsAhead": 2, "largeWeekendOnly": true, "monthsVisible": 3, "extraAfter20": false}, "gift": {"amounts": [50, 100, 250]}, "theme": {"halloween": true}};
     const SITE_FORM = [
         { t: 'Announcement bar', ic: 'fa-bullhorn', f: [
             { k: 'announcement.on', type: 'toggle', label: 'Show a message at the top of the website' },
@@ -1558,7 +1600,91 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
     }
 
     let currentTab = (location.hash === '#requests') ? 'tab-book' : 'tab-cal', currentMedia = 'tab-gal';
-    const TAB_TITLES = { 'tab-cal': 'Agenda', 'tab-book': 'Requests', 'tab-site': 'Website', 'tab-media': 'Media', 'tab-reviews': 'Reviews' };
+    const TAB_TITLES = { 'tab-cal': 'Agenda', 'tab-book': 'Requests', 'tab-site': 'Website', 'tab-media': 'Media', 'tab-reviews': 'Reviews', 'tab-stats': 'Statistics' };
+    // ---------- STATS ----------
+    let statsRange = 1, statsCache = {};
+    const ST_SRC = { instagram: ['fab fa-instagram','Instagram'], facebook: ['fab fa-facebook-f','Facebook'], tiktok: ['fab fa-tiktok','TikTok'], google: ['fab fa-google','Google'], search: ['fas fa-magnifying-glass','Other search engine'], whatsapp: ['fab fa-whatsapp','WhatsApp link'], other: ['fas fa-link','Other website'], direct: ['fas fa-arrow-pointer','Typed / saved link'] };
+    const ST_SEC = { hero: ['fas fa-house','Top of the page'], portfolio: ['fas fa-images','Portfolio'], prices: ['fas fa-euro-sign','Prices'], about: ['fas fa-user','About me'], designs: ['fas fa-palette','Designs'], reviews: ['fas fa-star','Reviews'], contact: ['fas fa-location-dot','Contact / footer'], allwork: ['fas fa-table-cells','"All works" window'], alldesigns: ['fas fa-swatchbook','"All designs" window'], booking: ['fas fa-calendar-check','Booking windows'], gift: ['fas fa-gift','Gift card'], trick: ['fas fa-ghost','Trick or Tattoo'], other: ['fas fa-ellipsis','Other'] };
+    const ST_DEV = { phone: ['fas fa-mobile-screen','Phone'], computer: ['fas fa-desktop','Computer'], tablet: ['fas fa-tablet-screen-button','Tablet'] };
+    function stDay(off) { const d = new Date(); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function stTime(sec) { sec = Math.round(sec || 0); if (sec < 60) return sec + 's'; const m = Math.floor(sec / 60), s = sec % 60; return m < 60 ? (m + 'm ' + (s ? s + 's' : '')).trim() : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; }
+    function stPct(a, b) { return b ? Math.round(a / b * 100) + '%' : '0%'; }
+    function setStatsRange(r) { statsRange = r; document.querySelectorAll('#stRange .seg-btn').forEach(b => b.classList.toggle('active', +b.dataset.r === r)); loadStats(); }
+    async function loadStats(force) {
+        const box = document.getElementById('statsBody');
+        const from = stDay(statsRange - 1);
+        let rows = statsCache[statsRange];
+        if (!rows || force || Date.now() - rows.at > 60000) {
+            box.innerHTML = '<div class="st-empty"><i class="fas fa-spinner fa-spin"></i></div>';
+            try {
+                const snap = await db.collection('visits').where('d', '>=', from).limit(20000).get();
+                rows = { at: Date.now(), list: snap.docs.map(d => d.data()) };
+                statsCache[statsRange] = rows;
+            } catch (e) {
+                box.innerHTML = '<div class="st-empty">Could not load the statistics.<br><small>' + (e.code || e.message || e) + '</small></div>'; return;
+            }
+        }
+        renderStats(rows.list.filter(v => v.d >= from), from);
+        stCleanup();
+    }
+    function stRows(map, labels, total, fmt) {
+        const keys = Object.keys(map).sort((a, b) => map[b] - map[a]); const max = Math.max(1, ...keys.map(k => map[k]));
+        return keys.map(k => { const L = labels[k] || ['fas fa-circle', k]; return '<div class="st-row"><i class="' + L[0] + '"></i><div class="lbl"><span>' + L[1] + '</span><div class="st-bar"><div style="width:' + (map[k] / max * 100).toFixed(1) + '%"></div></div></div><div class="val">' + fmt(k) + '</div></div>'; }).join('');
+    }
+    function stCols(vals, labels) {
+        const max = Math.max(1, ...vals);
+        return '<div class="st-cols">' + vals.map((v, i) => '<div title="' + v + '"><i class="' + (v ? '' : 'zero') + '" style="height:' + (v / max * 100).toFixed(1) + '%"></i><span>' + (labels[i] || '') + '</span></div>').join('') + '</div>';
+    }
+    function renderStats(list, from) {
+        const box = document.getElementById('statsBody');
+        if (!list.length) { box.innerHTML = '<div class="st-empty"><i class="fas fa-chart-simple" style="font-size:26px;opacity:.5;display:block;margin-bottom:10px"></i>No visits yet in this period.<br>As soon as somebody opens inkjection.be, it shows up here.</div>'; return; }
+        const n = list.length, real = list.filter(v => v.dur >= 10);
+        const totalSec = list.reduce((a, v) => a + (v.dur || 0), 0);
+        const ev = k => list.filter(v => v.ev && v.ev[k]).length;
+        const src = {}, dev = {}, secSum = {}, secReach = {}, hours = new Array(24).fill(0);
+        list.forEach(v => {
+            src[v.src] = (src[v.src] || 0) + 1; dev[v.dev] = (dev[v.dev] || 0) + 1; hours[v.h] = (hours[v.h] || 0) + 1;
+            Object.keys(v.s || {}).forEach(k => { secSum[k] = (secSum[k] || 0) + v.s[k]; if (v.s[k] >= 2) secReach[k] = (secReach[k] || 0) + 1; });
+        });
+        // visits over time
+        let chart, chartTitle;
+        if (statsRange === 1) {
+            chartTitle = 'Visits per hour';
+            chart = stCols(hours, hours.map((_, i) => i % 3 === 0 ? String(i) : ''));
+        } else {
+            chartTitle = 'Visits per day';
+            const days = [], labels = [];
+            for (let i = statsRange - 1; i >= 0; i--) { const d = stDay(i); days.push(list.filter(v => v.d === d).length); const step = statsRange <= 7 ? 1 : statsRange <= 30 ? 5 : 15; labels.push((statsRange - 1 - i) % step === 0 || i === 0 ? String(+d.slice(8)) : ''); }
+            chart = stCols(days, labels);
+        }
+        const book = ev('book'), form = ev('form'), sent = ev('sent'), wa = ev('wa');
+        let h = '';
+        h += '<div class="st-kpis">';
+        h += '<div class="st-kpi"><b>' + n + '</b><span>Visits</span><em>' + stPct(list.filter(v => v.ret).length, n) + ' came back</em></div>';
+        h += '<div class="st-kpi"><b>' + stTime(totalSec / n) + '</b><span>Average time</span><em>' + stPct(n - real.length, n) + ' left within 10s</em></div>';
+        h += '<div class="st-kpi"><b>' + form + '</b><span>Opened the booking form</span><em>' + stPct(form, n) + ' of visits</em></div>';
+        h += '<div class="st-kpi"><b>' + (sent + wa) + '</b><span>Contacted you</span><em>' + sent + ' request' + (sent === 1 ? '' : 's') + ' · ' + wa + ' WhatsApp</em></div>';
+        h += '</div>';
+        h += '<div class="st-card"><h4><i class="fas fa-chart-column"></i>' + chartTitle + '</h4>' + chart + '</div>';
+        h += '<div class="st-card"><h4><i class="fas fa-route"></i>Where they came from</h4>' + stRows(src, ST_SRC, n, k => src[k] + '<small>' + stPct(src[k], n) + '</small>') + '</div>';
+        h += '<div class="st-card"><h4><i class="fas fa-eye"></i>What they looked at<small>average time per visit</small></h4>' + stRows(secSum, ST_SEC, n, k => stTime(secSum[k] / n) + '<small>' + stPct(secReach[k] || 0, n) + ' saw it</small>') + '</div>';
+        h += '<div class="st-card"><h4><i class="fas fa-filter"></i>From visit to booking</h4><div class="st-funnel">'
+            + [['Visited the site', n], ['Clicked "book" / opened the calendar', book], ['Opened the booking form', form], ['Sent a booking request', sent]].map(s => '<div class="st-step"><div style="width:' + (s[1] / n * 100).toFixed(1) + '%"></div><span>' + s[0] + '</span><b>' + s[1] + ' · ' + stPct(s[1], n) + '</b></div>').join('')
+            + '<div class="st-step"><div style="width:' + (wa / n * 100).toFixed(1) + '%"></div><span><i class="fab fa-whatsapp"></i> Tapped WhatsApp</span><b>' + wa + ' · ' + stPct(wa, n) + '</b></div>'
+            + '</div></div>';
+        if (statsRange > 1) h += '<div class="st-card"><h4><i class="fas fa-clock"></i>Busiest hours</h4>' + stCols(hours, hours.map((_, i) => i % 3 === 0 ? String(i) : '')) + '</div>';
+        h += '<div class="st-card"><h4><i class="fas fa-mobile-screen"></i>Phone or computer</h4>' + stRows(dev, ST_DEV, n, k => stPct(dev[k], n) + '<small>' + dev[k] + '</small>') + '</div>';
+        box.innerHTML = h;
+    }
+    let stCleaned = false;
+    async function stCleanup() { // keep one year of statistics
+        if (stCleaned) return; stCleaned = true;
+        try {
+            const old = await db.collection('visits').where('d', '<', stDay(366)).limit(400).get();
+            if (old.empty) return; const b = db.batch(); old.docs.forEach(d => b.delete(d.ref)); await b.commit();
+        } catch (e) { }
+    }
+
     function switchTab(id) {
         currentTab = id;
         document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === id));
@@ -1568,6 +1694,7 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         if (id === 'tab-media') showMedia(currentMedia);
         if (id === 'tab-site') loadSiteForm();
         if (id === 'tab-reviews') loadReviews();
+        if (id === 'tab-stats') loadStats();
     }
     function showMedia(id) {
         currentMedia = id;
