@@ -1617,11 +1617,13 @@ var HW_GHOST_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE ","a":"","k":"","d"
         if (!rows || force || Date.now() - rows.at > 60000) {
             box.innerHTML = '<div class="st-empty"><i class="fas fa-spinner fa-spin"></i></div>';
             try {
-                const snap = await db.collection('visits').where('d', '>=', from).limit(20000).get();
-                rows = { at: Date.now(), list: snap.docs.map(d => d.data()) };
+                let snap;
+                try { snap = await db.collection('visits').where('d', '>=', from).get(); }
+                catch (e1) { console.warn('stats query failed, loading all visits instead', e1); snap = await db.collection('visits').get(); }
+                rows = { at: Date.now(), list: snap.docs.map(d => d.data()).filter(v => v && typeof v.d === 'string') };
                 statsCache[statsRange] = rows;
             } catch (e) {
-                box.innerHTML = '<div class="st-empty">Could not load the statistics.<br><small>' + (e.code || e.message || e) + '</small></div>'; return;
+                box.innerHTML = '<div class="st-empty">Could not load the statistics.<br><small>' + esc((e.code || '') + ' ' + (e.message || e)) + '</small></div>'; return;
             }
         }
         renderStats(rows.list.filter(v => v.d >= from), from);
