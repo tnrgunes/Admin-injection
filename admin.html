@@ -523,7 +523,7 @@
             <button class="seg-btn" data-r="90" onclick="setStatsRange(90)">90 days</button>
         </div>
         <div id="statsBody"><div class="st-empty"><i class="fas fa-spinner fa-spin"></i></div></div>
-        <p class="st-note">Anonymous: no names, no IP addresses, no cookies. Your own visits are counted too, unless you open <a href="https://inkjection.be/?nostats" target="_blank">inkjection.be/?nostats</a> once on each of your phones and computers.</p>
+        <p class="st-note">Anonymous: no names, no IP addresses. Counted per person, not per page load; bots and accidental taps are filtered out. Phones and computers that open this panel are never counted. For other devices of yours, open <a href="https://inkjection.be/?nostats" target="_blank">inkjection.be/?nostats</a> once.</p>
     </div>
 
     <!-- REVIEWS -->
@@ -1613,11 +1613,16 @@
     let currentTab = (location.hash === '#requests') ? 'tab-book' : 'tab-cal', currentMedia = 'tab-gal';
     const TAB_TITLES = { 'tab-cal': 'Agenda', 'tab-book': 'Requests', 'tab-site': 'Website', 'tab-media': 'Media', 'tab-reviews': 'Reviews', 'tab-stats': 'Statistics' };
     // ---------- STATS ----------
+    // Counts PEOPLE, not page loads: every visitor has a random number (vid). Reloads, coming back from WhatsApp,
+    // opening the site twice… all count as the same person. Bots and accidental taps are filtered out.
+    try { localStorage.setItem('inkjection_nostats', '1'); } catch (e) {} // this device belongs to the studio: never count it on the website
     let statsRange = 1, statsCache = {};
-    const ST_SRC = { instagram: ['fab fa-instagram','Instagram'], facebook: ['fab fa-facebook-f','Facebook'], tiktok: ['fab fa-tiktok','TikTok'], google: ['fab fa-google','Google'], search: ['fas fa-magnifying-glass','Other search engine'], whatsapp: ['fab fa-whatsapp','WhatsApp link'], other: ['fas fa-link','Other website'], direct: ['fas fa-arrow-pointer','Typed / saved link'] };
+    const ST_SRC = { instagram: ['fab fa-instagram','Instagram'], facebook: ['fab fa-facebook-f','Facebook / Messenger'], tiktok: ['fab fa-tiktok','TikTok'], google: ['fab fa-google','Google search'], maps: ['fas fa-map-location-dot','Google Maps / Google profile'], search: ['fas fa-magnifying-glass','Other search engine'], whatsapp: ['fab fa-whatsapp','Link shared on WhatsApp'], email: ['fas fa-envelope','E-mail'], qr: ['fas fa-qrcode','QR code'], other: ['fas fa-link','Other website'], direct: ['fas fa-arrow-pointer','Typed / saved / unknown'] };
+    const ST_CMP = { 'ig-bio': ['fab fa-instagram','Instagram bio link'], 'ig-story': ['fab fa-instagram','Instagram story link'], 'ig-post': ['fab fa-instagram','Instagram post / DM'], fb: ['fab fa-facebook-f','Facebook link'], tt: ['fab fa-tiktok','TikTok bio link'], gbp: ['fas fa-map-location-dot','Google profile website button'], qr: ['fas fa-qrcode','QR code (flyer, card…)'], mail: ['fas fa-envelope','E-mail signature'], wa: ['fab fa-whatsapp','WhatsApp status / profile'] };
     const ST_SEC = { hero: ['fas fa-house','Top of the page'], portfolio: ['fas fa-images','Portfolio'], prices: ['fas fa-euro-sign','Prices'], about: ['fas fa-user','About me'], designs: ['fas fa-palette','Designs'], reviews: ['fas fa-star','Reviews'], contact: ['fas fa-location-dot','Contact / footer'], allwork: ['fas fa-table-cells','"All works" window'], alldesigns: ['fas fa-swatchbook','"All designs" window'], booking: ['fas fa-calendar-check','Booking windows'], gift: ['fas fa-gift','Gift card'], trick: ['fas fa-ghost','Trick or Tattoo'], other: ['fas fa-ellipsis','Other'] };
     const ST_DEV = { phone: ['fas fa-mobile-screen','Phone'], computer: ['fas fa-desktop','Computer'], tablet: ['fas fa-tablet-screen-button','Tablet'] };
     function stDay(off) { const d = new Date(); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function stDateKey(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
     function stTime(sec) { sec = Math.round(sec || 0); if (sec < 60) return sec + 's'; const m = Math.floor(sec / 60), s = sec % 60; return m < 60 ? (m + 'm ' + (s ? s + 's' : '')).trim() : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; }
     function stPct(a, b) { return b ? Math.round(a / b * 100) + '%' : '0%'; }
     function setStatsRange(r) { statsRange = r; document.querySelectorAll('#stRange .seg-btn').forEach(b => b.classList.toggle('active', +b.dataset.r === r)); loadStats(); }
@@ -1631,7 +1636,7 @@
                 let snap;
                 try { snap = await db.collection('visits').where('d', '>=', from).get(); }
                 catch (e1) { console.warn('stats query failed, loading all visits instead', e1); snap = await db.collection('visits').get(); }
-                rows = { at: Date.now(), list: snap.docs.map(d => d.data()).filter(v => v && typeof v.d === 'string') };
+                rows = { at: Date.now(), list: snap.docs.map(d => Object.assign({ _id: d.id }, d.data())).filter(v => v && typeof v.d === 'string') };
                 statsCache[statsRange] = rows;
             } catch (e) {
                 box.innerHTML = '<div class="st-empty">Could not load the statistics.<br><small>' + esc((e.code || '') + ' ' + (e.message || e)) + '</small></div>'; return;
@@ -1641,53 +1646,97 @@
         stCleanup();
     }
     function stRows(map, labels, total, fmt) {
-        const keys = Object.keys(map).sort((a, b) => map[b] - map[a]); const max = Math.max(1, ...keys.map(k => map[k]));
-        return keys.map(k => { const L = labels[k] || ['fas fa-circle', k]; return '<div class="st-row"><i class="' + L[0] + '"></i><div class="lbl"><span>' + L[1] + '</span><div class="st-bar"><div style="width:' + (map[k] / max * 100).toFixed(1) + '%"></div></div></div><div class="val">' + fmt(k) + '</div></div>'; }).join('');
+        const keys = Object.keys(map).filter(k => map[k] > 0).sort((a, b) => map[b] - map[a]); const max = Math.max(1, ...keys.map(k => map[k]));
+        if (!keys.length) return '<div class="st-note" style="margin:0">Nothing yet.</div>';
+        return keys.map(k => { const L = labels[k] || ['fas fa-circle', k]; return '<div class="st-row"><i class="' + L[0] + '"></i><div class="lbl"><span>' + esc(L[1]) + '</span><div class="st-bar"><div style="width:' + (map[k] / max * 100).toFixed(1) + '%"></div></div></div><div class="val">' + fmt(k) + '</div></div>'; }).join('');
     }
     function stCols(vals, labels) {
         const max = Math.max(1, ...vals);
         return '<div class="st-cols">' + vals.map((v, i) => '<div title="' + v + '"><i class="' + (v ? '' : 'zero') + '" style="height:' + (v / max * 100).toFixed(1) + '%"></i><span>' + (labels[i] || '') + '</span></div>').join('') + '</div>';
     }
-    function renderStats(list, from) {
-        const box = document.getElementById('statsBody');
-        if (!list.length) { box.innerHTML = '<div class="st-empty"><i class="fas fa-chart-simple" style="font-size:26px;opacity:.5;display:block;margin-bottom:10px"></i>No visits yet in this period.<br>As soon as somebody opens inkjection.be, it shows up here.</div>'; return; }
-        const n = list.length, real = list.filter(v => v.dur >= 10);
-        const totalSec = list.reduce((a, v) => a + (v.dur || 0), 0);
-        const ev = k => list.filter(v => v.ev && v.ev[k]).length;
-        const src = {}, dev = {}, secSum = {}, secReach = {}, hours = new Array(24).fill(0);
-        list.forEach(v => {
-            src[v.src] = (src[v.src] || 0) + 1; dev[v.dev] = (dev[v.dev] || 0) + 1; hours[v.h] = (hours[v.h] || 0) + 1;
-            Object.keys(v.s || {}).forEach(k => { secSum[k] = (secSum[k] || 0) + v.s[k]; if (v.s[k] >= 2) secReach[k] = (secReach[k] || 0) + 1; });
+    // a visit counts when a real person used the page: touched / scrolled / clicked, or stayed 20s+
+    function stIsReal(v) { if (v.hum === true) return true; if (v.hum === false) return (v.dur || 0) >= 20; return (v.dur || 0) >= 5; /* older visits (before the update) */ }
+    function stPeople(list) {
+        // group page visits per person, then split each person's visits into sessions (30 min without activity = new visit)
+        const P = {};
+        list.forEach((v, i) => { const k = v.vid || ('old_' + (v._id || i)); (P[k] = P[k] || []).push(v); });
+        return Object.keys(P).map(k => {
+            const vs = P[k].sort((a, b) => ((a.t && a.t.seconds) || 0) - ((b.t && b.t.seconds) || 0));
+            let sessions = 0, lastEnd = -1e12;
+            vs.forEach(v => { const st = (v.t && v.t.seconds) || 0; if (!st || st - lastEnd > 1800) sessions++; lastEnd = Math.max(lastEnd, st + (v.dur || 0)); });
+            const days = new Set(vs.map(v => v.d)), ev = {}, s = {};
+            let dur = 0; vs.forEach(v => { dur += v.dur || 0; Object.keys(v.ev || {}).forEach(e => ev[e] = 1); Object.keys(v.s || {}).forEach(x => s[x] = (s[x] || 0) + v.s[x]); });
+            const first = vs[0];
+            return { key: k, visits: vs, sessions, days, dur, ev, s, src: first.src, cmp: (vs.find(v => v.cmp) || {}).cmp || '', rh: (vs.find(v => v.rh) || {}).rh || '', dev: first.dev, ret: vs.some(v => v.ret) || days.size > 1 || sessions > 1, h: first.h, d: first.d };
         });
-        // visits over time
+    }
+    function stCopyLink(btn, url) {
+        const done = () => { const o = btn.innerHTML; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => btn.innerHTML = o, 1400); };
+        if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, () => prompt('Copy this link:', url)); else prompt('Copy this link:', url);
+    }
+    function renderStats(all, from) {
+        const box = document.getElementById('statsBody');
+        const list = all.filter(stIsReal), filtered = all.length - list.length;
+        if (!list.length) { box.innerHTML = '<div class="st-empty"><i class="fas fa-chart-simple" style="font-size:26px;opacity:.5;display:block;margin-bottom:10px"></i>No visitors yet in this period.<br>As soon as somebody opens inkjection.be, it shows up here.</div>' + stLinksCard(); return; }
+        const people = stPeople(list), n = people.length;
+        const sessions = people.reduce((a, p) => a + p.sessions, 0);
+        const returning = people.filter(p => p.ret).length;
+        const totalSec = people.reduce((a, p) => a + p.dur, 0);
+        const quick = people.filter(p => p.dur < 15).length;
+        const has = k => people.filter(p => p.ev[k]).length;
+        // real booking requests that came in through the website in this period (from the Requests tab, not guessed)
+        const realReq = (typeof appointments !== 'undefined' ? appointments : []).filter(a => !a.createdBy && a.createdAt && (a.createdAt.toDate || a.createdAt.seconds) && stDateKey(a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt.seconds * 1000)) >= from).length;
+        const src = {}, srcBook = {}, cmp = {}, refs = {}, dev = {}, secSum = {}, secReach = {}, hours = new Array(24).fill(0);
+        people.forEach(p => {
+            src[p.src] = (src[p.src] || 0) + 1; if (p.ev.form || p.ev.sent || p.ev.wa) srcBook[p.src] = (srcBook[p.src] || 0) + 1;
+            if (p.cmp) cmp[p.cmp] = (cmp[p.cmp] || 0) + 1;
+            if (p.rh) refs[p.rh] = (refs[p.rh] || 0) + 1;
+            dev[p.dev] = (dev[p.dev] || 0) + 1;
+            Object.keys(p.s).forEach(k => { secSum[k] = (secSum[k] || 0) + p.s[k]; if (p.s[k] >= 2) secReach[k] = (secReach[k] || 0) + 1; });
+        });
+        list.forEach(v => { hours[v.h] = (hours[v.h] || 0) + 1; });
         let chart, chartTitle;
         if (statsRange === 1) {
-            chartTitle = 'Visits per hour';
-            chart = stCols(hours, hours.map((_, i) => i % 3 === 0 ? String(i) : ''));
+            chartTitle = 'Visitors per hour';
+            const hp = new Array(24).fill(0); people.forEach(p => { const hs = new Set(p.visits.map(v => v.h)); hs.forEach(x => hp[x]++); });
+            chart = stCols(hp, hp.map((_, i) => i % 3 === 0 ? String(i) : ''));
         } else {
-            chartTitle = 'Visits per day';
+            chartTitle = 'Visitors per day';
             const days = [], labels = [];
-            for (let i = statsRange - 1; i >= 0; i--) { const d = stDay(i); days.push(list.filter(v => v.d === d).length); const step = statsRange <= 7 ? 1 : statsRange <= 30 ? 5 : 15; labels.push((statsRange - 1 - i) % step === 0 || i === 0 ? String(+d.slice(8)) : ''); }
+            for (let i = statsRange - 1; i >= 0; i--) { const d = stDay(i); days.push(people.filter(p => p.days.has(d)).length); const step = statsRange <= 7 ? 1 : statsRange <= 30 ? 5 : 15; labels.push((statsRange - 1 - i) % step === 0 || i === 0 ? String(+d.slice(8)) : ''); }
             chart = stCols(days, labels);
         }
-        const book = ev('book'), form = ev('form'), sent = ev('sent'), wa = ev('wa');
+        const book = has('book'), form = has('form'), sent = has('sent'), wa = has('wa'), call = has('call'), route = has('route');
         let h = '';
         h += '<div class="st-kpis">';
-        h += '<div class="st-kpi"><b>' + n + '</b><span>Visits</span><em>' + stPct(list.filter(v => v.ret).length, n) + ' came back</em></div>';
-        h += '<div class="st-kpi"><b>' + stTime(totalSec / n) + '</b><span>Average time</span><em>' + stPct(n - real.length, n) + ' left within 10s</em></div>';
-        h += '<div class="st-kpi"><b>' + form + '</b><span>Opened the booking form</span><em>' + stPct(form, n) + ' of visits</em></div>';
-        h += '<div class="st-kpi"><b>' + (sent + wa) + '</b><span>Contacted you</span><em>' + sent + ' request' + (sent === 1 ? '' : 's') + ' · ' + wa + ' WhatsApp</em></div>';
+        h += '<div class="st-kpi"><b>' + n + '</b><span>People</span><em>' + sessions + ' visit' + (sessions === 1 ? '' : 's') + ' · ' + stPct(returning, n) + ' came back</em></div>';
+        h += '<div class="st-kpi"><b>' + stTime(totalSec / n) + '</b><span>Time per person</span><em>' + stPct(quick, n) + ' only had a quick look</em></div>';
+        h += '<div class="st-kpi"><b>' + realReq + '</b><span>Booking requests</span><em>received via the website</em></div>';
+        h += '<div class="st-kpi"><b>' + wa + '</b><span>WhatsApp taps</span><em>' + stPct(wa, n) + ' of people' + (call ? ' · ' + call + ' called' : '') + '</em></div>';
         h += '</div>';
         h += '<div class="st-card"><h4><i class="fas fa-chart-column"></i>' + chartTitle + '</h4>' + chart + '</div>';
-        h += '<div class="st-card"><h4><i class="fas fa-route"></i>Where they came from</h4>' + stRows(src, ST_SRC, n, k => src[k] + '<small>' + stPct(src[k], n) + '</small>') + '</div>';
-        h += '<div class="st-card"><h4><i class="fas fa-eye"></i>What they looked at<small>average time per visit</small></h4>' + stRows(secSum, ST_SEC, n, k => stTime(secSum[k] / n) + '<small>' + stPct(secReach[k] || 0, n) + ' saw it</small>') + '</div>';
-        h += '<div class="st-card"><h4><i class="fas fa-filter"></i>From visit to booking</h4><div class="st-funnel">'
-            + [['Visited the site', n], ['Clicked "book" / opened the calendar', book], ['Opened the booking form', form], ['Sent a booking request', sent]].map(s => '<div class="st-step"><div style="width:' + (s[1] / n * 100).toFixed(1) + '%"></div><span>' + s[0] + '</span><b>' + s[1] + ' · ' + stPct(s[1], n) + '</b></div>').join('')
+        h += '<div class="st-card"><h4><i class="fas fa-route"></i>Where people came from</h4>' + stRows(src, ST_SRC, n, k => src[k] + '<small>' + (srcBook[k] ? srcBook[k] + ' wanted to book' : stPct(src[k], n)) + '</small>') + '</div>';
+        const refKeys = Object.keys(refs).sort((a, b) => refs[b] - refs[a]).slice(0, 8);
+        if (refKeys.length) h += '<div class="st-card"><h4><i class="fas fa-link"></i>Websites that sent people</h4>' + refKeys.map(k => '<div class="st-row"><i class="fas fa-globe"></i><div class="lbl"><span>' + esc(k) + '</span></div><div class="val">' + refs[k] + '</div></div>').join('') + '</div>';
+        if (Object.keys(cmp).length) h += '<div class="st-card"><h4><i class="fas fa-bullseye"></i>Your tracking links</h4>' + stRows(cmp, ST_CMP, n, k => cmp[k] + '<small>people</small>') + '</div>';
+        h += '<div class="st-card"><h4><i class="fas fa-filter"></i>From visitor to booking<small>people</small></h4><div class="st-funnel">'
+            + [['Visited the site', n], ['Opened the calendar', book], ['Opened the booking form', form], ['Sent a booking request', sent]].map(s => '<div class="st-step"><div style="width:' + (s[1] / n * 100).toFixed(1) + '%"></div><span>' + s[0] + '</span><b>' + s[1] + ' · ' + stPct(s[1], n) + '</b></div>').join('')
             + '<div class="st-step"><div style="width:' + (wa / n * 100).toFixed(1) + '%"></div><span><i class="fab fa-whatsapp"></i> Tapped WhatsApp</span><b>' + wa + ' · ' + stPct(wa, n) + '</b></div>'
+            + (route ? '<div class="st-step"><div style="width:' + (route / n * 100).toFixed(1) + '%"></div><span><i class="fas fa-diamond-turn-right"></i> Asked for directions</span><b>' + route + '</b></div>' : '')
             + '</div></div>';
+        h += '<div class="st-card"><h4><i class="fas fa-eye"></i>What they looked at<small>average per person</small></h4>' + stRows(secSum, ST_SEC, n, k => stTime(secSum[k] / n) + '<small>' + stPct(secReach[k] || 0, n) + ' saw it</small>') + '</div>';
         if (statsRange > 1) h += '<div class="st-card"><h4><i class="fas fa-clock"></i>Busiest hours</h4>' + stCols(hours, hours.map((_, i) => i % 3 === 0 ? String(i) : '')) + '</div>';
         h += '<div class="st-card"><h4><i class="fas fa-mobile-screen"></i>Phone or computer</h4>' + stRows(dev, ST_DEV, n, k => stPct(dev[k], n) + '<small>' + dev[k] + '</small>') + '</div>';
+        h += stLinksCard();
+        if (filtered) h += '<p class="st-note" style="margin-top:0"><i class="fas fa-robot"></i> ' + filtered + ' page view' + (filtered === 1 ? '' : 's') + ' by bots or accidental taps were left out.</p>';
         box.innerHTML = h;
+    }
+    function stLinksCard() {
+        const base = 'https://www.inkjection.be/?src=';
+        const L = [['ig-bio', 'Instagram bio'], ['ig-story', 'Instagram stories'], ['gbp', 'Google profile (website button)'], ['tt', 'TikTok bio'], ['fb', 'Facebook page'], ['qr', 'QR code / flyer']];
+        return '<div class="st-card"><h4><i class="fas fa-bullseye"></i>Links to share<small>so you see exactly what works</small></h4>'
+            + L.map(x => '<div class="st-row"><i class="' + ST_CMP[x[0]][0] + '"></i><div class="lbl"><span>' + x[1] + '</span><small style="display:block;opacity:.6;font-size:10px;word-break:break-all">' + base + x[0] + '</small></div><button class="mini-btn" style="margin-left:auto" onclick="stCopyLink(this,\'' + base + x[0] + '\')"><i class="fas fa-copy"></i></button></div>').join('')
+            + '</div>';
     }
     let stCleaned = false;
     async function stCleanup() { // keep one year of statistics
