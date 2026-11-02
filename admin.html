@@ -380,7 +380,8 @@
         .rv-thumbs div { position: relative; width: 72px; height: 72px; }
         .rv-thumbs img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; border: 1px solid var(--card-border); }
         .rv-thumbs button { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: none; background: var(--red); color: #fff; font-size: 13px; line-height: 22px; padding: 0; cursor: pointer; }
-    </style>
+            a.mini-btn { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+</style>
 </head>
 <body>
 
@@ -450,8 +451,13 @@
             <button class="filter-btn active" data-f="pending" onclick="setBookingFilter('pending', this)">NEW</button>
             <button class="filter-btn" data-f="confirmed" onclick="setBookingFilter('confirmed', this)">CONFIRMED</button>
             <button class="filter-btn" data-f="other" onclick="setBookingFilter('other', this)">PAST / OTHER</button>
+            <button class="filter-btn" data-f="gifts" onclick="setBookingFilter('gifts', this)"><i class="fas fa-gift"></i> GIFT CARDS</button>
         </div>
         <div class="booking-list" id="bookingList"></div>
+        <div id="giftBox" style="display:none">
+            <input type="search" id="giftSearch" placeholder="Search code or name…" oninput="renderGifts()" style="margin-bottom:12px">
+            <div class="booking-list" id="giftList"></div>
+        </div>
     </div>
 
     <!-- MEDIA (gallery / designs / trick) -->
@@ -1520,9 +1526,53 @@
         document.title = (n ? '(' + n + ') ' : '') + 'Inkjection | Admin';
     }
     function setBookingFilter(f, btn) {
-        bookingFilter = f;
         document.querySelectorAll('.filter-btn').forEach(x => x.classList.toggle('active', x === btn));
+        const gifts = f === 'gifts';
+        document.getElementById('bookingList').style.display = gifts ? 'none' : '';
+        document.getElementById('giftBox').style.display = gifts ? 'block' : 'none';
+        if (gifts) { loadGifts(); return; }
+        bookingFilter = f;
         renderBookings();
+    }
+    // ---------- GIFT CARDS sold online ----------
+    const GIFT_API = 'https://europe-west1-inkjection-admin.cloudfunctions.net';
+    let giftCards = [];
+    async function loadGifts() {
+        const el = document.getElementById('giftList');
+        el.innerHTML = '<div class="empty-note"><i class="fas fa-spinner fa-spin"></i></div>';
+        try {
+            const snap = await db.collection('giftCards').where('status', '==', 'paid').get();
+            giftCards = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+            giftCards.sort((a, b) => ((b.paidAt && b.paidAt.seconds) || 0) - ((a.paidAt && a.paidAt.seconds) || 0));
+            renderGifts();
+        } catch (e) { el.innerHTML = '<div class="empty-note">Could not load gift cards: ' + esc(e.code || e.message) + '</div>'; }
+    }
+    function renderGifts() {
+        const el = document.getElementById('giftList'), q = (document.getElementById('giftSearch').value || '').trim().toLowerCase();
+        const today = todayStr();
+        const list = giftCards.filter(g => !q || [g.code, g.to, g.from, g.email].join(' ').toLowerCase().includes(q));
+        if (!list.length) { el.innerHTML = '<div class="empty-note">' + (giftCards.length ? 'No gift card matches your search.' : 'No gift cards sold yet. As soon as somebody buys one on the website, it shows up here.') + '</div>'; return; }
+        el.innerHTML = list.map(g => {
+            const expired = g.validUntil && g.validUntil < today;
+            const st = g.used ? ['USED', 'rejected'] : expired ? ['EXPIRED', 'cancelled'] : ['VALID', 'confirmed'];
+            const paid = g.paidAt && g.paidAt.seconds ? new Date(g.paidAt.seconds * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+            const pdf = GIFT_API + '/giftPdf?id=' + g.id + '&t=' + g.token;
+            return '<div class="booking-card"><div class="bk-top"><div><div class="bk-name">€ ' + esc(g.amount) + ' &nbsp;<span style="letter-spacing:2px;color:var(--accent-warm)">' + esc(g.code) + '</span></div>' +
+                '<div style="font-size:13px;margin-top:4px">For <b>' + esc(g.to) + '</b> · from <b>' + esc(g.from) + '</b></div></div><span class="bk-status ' + st[1] + '">' + st[0] + '</span></div>' +
+                (g.message ? '<div class="bk-desc" style="margin-top:0;font-style:italic">“' + esc(g.message) + '”</div>' : '') +
+                '<div style="font-size:12px;color:var(--text-soft);margin:8px 0 12px;line-height:1.7">Bought ' + esc(paid) + ' by ' + esc(g.email) + '<br>Valid until <b>' + esc(g.validUntil || '') + '</b>' + (g.used && g.usedAt ? ' · used on ' + esc(g.usedAt) : '') + '</div>' +
+                '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="mini-btn' + (g.used ? '' : ' accent') + '" onclick="toggleGiftUsed(\'' + g.id + '\')">' + (g.used ? '<i class="fas fa-rotate-left"></i> Undo used' : '<i class="fas fa-check"></i> Mark as used') + '</button>' +
+                '<a class="mini-btn" href="' + pdf + '&view=1" target="_blank" rel="noopener"><i class="fas fa-file-pdf"></i> PDF</a></div></div>';
+        }).join('');
+    }
+    async function toggleGiftUsed(id) {
+        const g = giftCards.find(x => x.id === id); if (!g) return;
+        const used = !g.used;
+        if (!confirm(used ? 'Mark ' + g.code + ' (€ ' + g.amount + ') as used?' : 'Make ' + g.code + ' valid again?')) return;
+        try {
+            const upd = { used: used, usedAt: used ? todayStr() : '' };
+            await db.collection('giftCards').doc(id).update(upd); Object.assign(g, upd); renderGifts();
+        } catch (e) { alert('Could not save: ' + (e.code || e.message)); }
     }
     function waNumber(phone) {
         let p = String(phone || '').replace(/[^\d+]/g, '');
