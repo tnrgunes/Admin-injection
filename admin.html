@@ -381,6 +381,7 @@
         .rv-thumbs img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; border: 1px solid var(--card-border); }
         .rv-thumbs button { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: none; background: var(--red); color: #fff; font-size: 13px; line-height: 22px; padding: 0; cursor: pointer; }
             a.mini-btn { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        .bk-dep { display: inline-flex; align-items: center; gap: 7px; margin: 6px 0 8px; padding: 6px 12px; border-radius: 999px; background: rgba(62,207,122,0.13); color: #7be3a3; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -1562,8 +1563,15 @@
                 (g.message ? '<div class="bk-desc" style="margin-top:0;font-style:italic">“' + esc(g.message) + '”</div>' : '') +
                 '<div style="font-size:12px;color:var(--text-soft);margin:8px 0 12px;line-height:1.7">Bought ' + esc(paid) + ' by ' + esc(g.email) + '<br>Valid until <b>' + esc(g.validUntil || '') + '</b>' + (g.used && g.usedAt ? ' · used on ' + esc(g.usedAt) : '') + '</div>' +
                 '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="mini-btn' + (g.used ? '' : ' accent') + '" onclick="toggleGiftUsed(\'' + g.id + '\')">' + (g.used ? '<i class="fas fa-rotate-left"></i> Undo used' : '<i class="fas fa-check"></i> Mark as used') + '</button>' +
-                '<a class="mini-btn" href="' + pdf + '&view=1" target="_blank" rel="noopener"><i class="fas fa-file-pdf"></i> PDF</a></div></div>';
+                '<a class="mini-btn" href="' + pdf + '&view=1" target="_blank" rel="noopener"><i class="fas fa-file-pdf"></i> PDF</a>' +
+                '<button class="mini-btn" style="margin-left:auto;color:var(--red)" onclick="deleteGift(\'' + g.id + '\')"><i class="fas fa-trash-can"></i> Delete</button></div></div>';
         }).join('');
+    }
+    async function deleteGift(id) {
+        const g = giftCards.find(x => x.id === id); if (!g) return;
+        if (!confirm('Delete gift card ' + g.code + ' (€ ' + g.amount + ') for good?')) return;
+        try { await db.collection('giftCards').doc(id).delete(); giftCards = giftCards.filter(x => x.id !== id); renderGifts(); toast('Gift card deleted'); }
+        catch (e) { alert('Could not delete: ' + (e.code || e.message)); }
     }
     async function toggleGiftUsed(id) {
         const g = giftCards.find(x => x.id === id); if (!g) return;
@@ -1608,6 +1616,8 @@
                 '<div class="bk-top"><div class="bk-when">' + esc(niceDate(a.date)) + '<small>' + (a.time ? 'AT ' + esc(a.time) : 'NO TIME CHOSEN — PROPOSE ONE') + '</small></div>' +
                 '<span class="bk-status ' + esc(a.status) + '">' + esc(a.status).toUpperCase() + '</span></div>' +
                 '<div class="bk-name">' + esc(a.name) + '</div>' +
+                (a.deposit && a.deposit.paid ? '<div class="bk-dep"><i class="fas fa-circle-check"></i> Deposit paid: <b>€ ' + esc(a.deposit.amount) + '</b>' + (a.deposit.method ? ' · ' + esc(a.deposit.method) : '') + '</div>' : '') +
+                (a.note ? '<div class="bk-line" style="color:var(--accent-warm)"><i class="fas fa-triangle-exclamation"></i> ' + esc(a.note) + '</div>' : '') +
                 '<div class="bk-line"><i class="fas fa-phone"></i> <a href="tel:' + esc(a.phone) + '" style="color:inherit">' + esc(a.phone) + '</a></div>' +
                 (a.email ? '<div class="bk-line"><i class="fas fa-envelope"></i> <a href="mailto:' + esc(a.email) + '" style="color:inherit">' + esc(a.email) + '</a></div>' : '') +
                 '<div class="bk-line"><i class="fas fa-ruler"></i> ' + esc(SIZE_LABEL[a.size] || a.size) + (a.placement ? ' &middot; ' + esc(a.placement) : '') + '</div>' +
