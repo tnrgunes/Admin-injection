@@ -382,6 +382,13 @@
         .rv-thumbs button { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: none; background: var(--red); color: #fff; font-size: 13px; line-height: 22px; padding: 0; cursor: pointer; }
             a.mini-btn { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
         .bk-dep { display: inline-flex; align-items: center; gap: 7px; margin: 6px 0 8px; padding: 6px 12px; border-radius: 999px; background: rgba(62,207,122,0.13); color: #7be3a3; font-size: 12px; }
+        .gc-check { margin-bottom: 14px; }
+        .gc-res { margin-top: 12px; padding: 14px; border-radius: 14px; font-size: 13px; line-height: 1.6; background: var(--card2); border: 1px solid var(--card-border); }
+        .gc-res.ok { border-color: rgba(62,207,122,.6); background: rgba(62,207,122,.1); }
+        .gc-res.ok b:first-child { color: #7be3a3; }
+        .gc-res.bad { border-color: rgba(255,59,92,.5); background: rgba(255,59,92,.08); }
+        .gc-res.bad b:first-child { color: #ff7a90; }
+        .gc-res.warn { border-color: rgba(226,194,125,.6); background: rgba(226,194,125,.08); }
 </style>
 </head>
 <body>
@@ -456,6 +463,11 @@
         </div>
         <div class="booking-list" id="bookingList"></div>
         <div id="giftBox" style="display:none">
+            <div class="media-box gc-check">
+                <span class="form-label" style="margin-top:0">Check a gift card code</span>
+                <div style="display:flex;gap:8px"><input type="text" id="giftCheckInput" placeholder="INK-XXXX-XXXX" style="text-transform:uppercase;letter-spacing:2px" onkeydown="if(event.key==='Enter')checkGiftCode()"><button class="mini-btn accent" onclick="checkGiftCode()" style="flex:0 0 auto">CHECK</button></div>
+                <div id="giftCheckResult"></div>
+            </div>
             <input type="search" id="giftSearch" placeholder="Search code or name…" oninput="renderGifts()" style="margin-bottom:12px">
             <div class="booking-list" id="giftList"></div>
         </div>
@@ -1384,7 +1396,9 @@
         { t: 'Gift voucher', ic: 'fa-gift', f: [
             { k: 'gift.amounts', type: 'list', label: 'Amounts (€)', hint: 'Separate with commas, e.g. 50, 100, 250' },
             { k: 'gift.bonusOn', type: 'toggle', label: 'Promotion on (pay less, get more)' },
-            { k: 'gift.bonus', type: 'pairs', label: 'Promotion: pay = gift card value', hint: 'e.g. 50=70, 100=130 → pays € 50, gets a card worth € 70. Leave empty for no promotion.' } ] },
+            { k: 'gift.promoLimit', type: 'number', label: 'Max promotion cards per e-mail address', hint: 'Default 1. Normal (non-promotion) gift cards are never limited.' },
+            { k: 'gift.bonus', type: 'pairs', label: 'Promotion: pay = gift card value', hint: 'e.g. 50=70, 100=130 → pays € 50, gets a card worth € 70. Leave empty for no promotion.' } ,
+            { k: 'gift.terms', type: 'i18n', multi: true, label: 'Gift card conditions', hint: 'Shown on the website, the PDF and the e-mail. Leave empty to use the standard text (one session, one person, not combinable, no cash).' } ] },
         { t: 'FAQ (questions on the website)', ic: 'fa-circle-question', f: [
             { k: 'faq.deposit', type: 'i18n', multi: true, label: 'Deposit & cancelling', hint: 'Leave empty to hide this question on the website.' },
             { k: 'faq.payment', type: 'i18n', multi: true, label: 'How can people pay?', hint: 'e.g. cash, Payconiq, card. Empty = hidden.' },
@@ -1571,6 +1585,22 @@
                 '<button class="mini-btn" style="margin-left:auto;color:var(--red)" onclick="deleteGift(\'' + g.id + '\')"><i class="fas fa-trash-can"></i> Delete</button></div></div>';
         }).join('');
     }
+    function normCode(x) { let c = String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.indexOf('INK') === 0) c = c.slice(3); return c.length === 8 ? 'INK-' + c.slice(0, 4) + '-' + c.slice(4) : ''; }
+    async function checkGiftCode() {
+        const out = document.getElementById('giftCheckResult'), code = normCode(document.getElementById('giftCheckInput').value);
+        if (!code) { out.innerHTML = '<div class="gc-res bad">Enter the full code, e.g. INK-7K2P-9QXM</div>'; return; }
+        out.innerHTML = '<div class="gc-res"><i class="fas fa-spinner fa-spin"></i></div>';
+        try {
+            const snap = await db.collection('giftCards').where('code', '==', code).limit(1).get();
+            if (snap.empty || snap.docs[0].data().status !== 'paid') { out.innerHTML = '<div class="gc-res bad"><b>NOT FOUND</b><br>No paid gift card with code ' + esc(code) + '.</div>'; return; }
+            const d = snap.docs[0], g = Object.assign({ id: d.id }, d.data());
+            if (!giftCards.find(x => x.id === g.id)) giftCards.push(g);
+            const expired = g.validUntil && g.validUntil < todayStr();
+            const cls = g.used ? 'bad' : expired ? 'warn' : 'ok', st = g.used ? 'ALREADY USED' + (g.usedAt ? ' on ' + esc(g.usedAt) : '') : expired ? 'EXPIRED on ' + esc(g.validUntil) : 'VALID';
+            out.innerHTML = '<div class="gc-res ' + cls + '"><b>' + st + '</b><br>€ ' + esc(g.value || g.amount) + ' · for <b>' + esc(g.to) + '</b> · from ' + esc(g.from) + '<br><small>Valid until ' + esc(g.validUntil || '') + (g.note ? ' · ' + esc(g.note) : '') + '</small>' +
+                (!g.used && !expired ? '<button class="btn-green" style="margin-top:12px" onclick="toggleGiftUsed(\'' + g.id + '\').then(checkGiftCode)">MARK AS USED</button>' : '') + '</div>';
+        } catch (e) { out.innerHTML = '<div class="gc-res bad">Could not check: ' + esc(e.code || e.message) + '</div>'; }
+    }
     async function deleteGift(id) {
         const g = giftCards.find(x => x.id === id); if (!g) return;
         if (!confirm('Delete gift card ' + g.code + ' (€ ' + g.amount + ') for good?')) return;
@@ -1580,7 +1610,7 @@
     async function toggleGiftUsed(id) {
         const g = giftCards.find(x => x.id === id); if (!g) return;
         const used = !g.used;
-        if (!confirm(used ? 'Mark ' + g.code + ' (€ ' + g.amount + ') as used?' : 'Make ' + g.code + ' valid again?')) return;
+        if (!confirm(used ? 'Mark ' + g.code + ' (€ ' + (g.value || g.amount) + ') as used?' : 'Make ' + g.code + ' valid again?')) return;
         try {
             const upd = { used: used, usedAt: used ? todayStr() : '' };
             await db.collection('giftCards').doc(id).update(upd); Object.assign(g, upd); renderGifts();
@@ -1620,6 +1650,7 @@
                 '<div class="bk-top"><div class="bk-when">' + esc(niceDate(a.date)) + '<small>' + (a.time ? 'AT ' + esc(a.time) : 'NO TIME CHOSEN — PROPOSE ONE') + '</small></div>' +
                 '<span class="bk-status ' + esc(a.status) + '">' + esc(a.status).toUpperCase() + '</span></div>' +
                 '<div class="bk-name">' + esc(a.name) + '</div>' +
+                (a.gift && a.gift.code ? '<div class="bk-dep"><i class="fas fa-gift"></i> Gift card <b>' + esc(a.gift.code) + '</b> (€ ' + esc(a.gift.value) + ')</div>' : '') +
                 (a.deposit && a.deposit.paid ? '<div class="bk-dep"><i class="fas fa-circle-check"></i> Deposit paid: <b>€ ' + esc(a.deposit.amount) + '</b>' + (a.deposit.method ? ' · ' + esc(a.deposit.method) : '') + '</div>' : '') +
                 (a.note ? '<div class="bk-line" style="color:var(--accent-warm)"><i class="fas fa-triangle-exclamation"></i> ' + esc(a.note) + '</div>' : '') +
                 '<div class="bk-line"><i class="fas fa-phone"></i> <a href="tel:' + esc(a.phone) + '" style="color:inherit">' + esc(a.phone) + '</a></div>' +
