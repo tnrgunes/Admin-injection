@@ -1382,7 +1382,9 @@
             { k: 'booking.monthsVisible', type: 'select', label: 'How many months can customers see in the calendar?', options: monthOptions, hint: 'Counted from this month.' },
             { k: 'booking.extraAfter20', type: 'toggle', label: 'From the 20th, also open the next month' } ] },
         { t: 'Gift voucher', ic: 'fa-gift', f: [
-            { k: 'gift.amounts', type: 'list', label: 'Amounts (€)', hint: 'Separate with commas, e.g. 50, 100, 250' } ] },
+            { k: 'gift.amounts', type: 'list', label: 'Amounts (€)', hint: 'Separate with commas, e.g. 50, 100, 250' },
+            { k: 'gift.bonusOn', type: 'toggle', label: 'Promotion on (pay less, get more)' },
+            { k: 'gift.bonus', type: 'pairs', label: 'Promotion: pay = gift card value', hint: 'e.g. 50=70, 100=130 → pays € 50, gets a card worth € 70. Leave empty for no promotion.' } ] },
         { t: 'FAQ (questions on the website)', ic: 'fa-circle-question', f: [
             { k: 'faq.deposit', type: 'i18n', multi: true, label: 'Deposit & cancelling', hint: 'Leave empty to hide this question on the website.' },
             { k: 'faq.payment', type: 'i18n', multi: true, label: 'How can people pay?', hint: 'e.g. cash, Payconiq, card. Empty = hidden.' },
@@ -1424,7 +1426,8 @@
                         const val = esc((v && v[L]) || '');
                         return '<div class="lang-in"><em>' + L.toUpperCase() + '</em>' + (f.multi ? '<textarea rows="5" data-k="' + f.k + '.' + L + '">' + val + '</textarea>' : '<input type="text" data-k="' + f.k + '.' + L + '" value="' + val + '">') + '</div>';
                     }).join('') + '</div>';
-                } else if (f.type === 'list') inner = '<input type="text" data-k="' + f.k + '" data-type="list" value="' + esc((v || []).join(', ')) + '">';
+                } else if (f.type === 'pairs') inner = '<input type="text" data-k="' + f.k + '" data-type="pairs" placeholder="50=70, 100=130" value="' + esc((v || []).join(', ')) + '">';
+                else if (f.type === 'list') inner = '<input type="text" data-k="' + f.k + '" data-type="list" value="' + esc((v || []).join(', ')) + '">';
                 else if (f.type === 'select') inner = '<select data-k="' + f.k + '" data-type="number">' + f.options().map(o => '<option value="' + o.v + '"' + (+v === o.v ? ' selected' : '') + '>' + esc(o.label) + '</option>').join('') + '</select>';
                 else if (f.type === 'number') inner = '<input type="number" min="1" max="12" data-k="' + f.k + '" data-type="number" value="' + esc(v) + '">';
                 else inner = '<input type="text" data-k="' + f.k + '" value="' + esc(v || '') + '">';
@@ -1434,7 +1437,8 @@
             const ev = (inp.type === 'checkbox' || inp.tagName === 'SELECT') ? 'change' : 'input';
             inp.addEventListener(ev, () => {
                 let v = inp.type === 'checkbox' ? inp.checked : inp.value;
-                if (inp.dataset.type === 'list') v = inp.value.split(/[,;\s]+/).map(x => parseInt(x, 10)).filter(x => x > 0);
+                if (inp.dataset.type === 'pairs') v = inp.value.split(/[,;]+/).map(x => x.replace(/\s/g, '')).filter(x => /^\d+=\d+$/.test(x));
+                else if (inp.dataset.type === 'list') v = inp.value.split(/[,;\s]+/).map(x => parseInt(x, 10)).filter(x => x > 0);
                 if (inp.dataset.type === 'number') v = Math.max(1, Math.min(12, parseInt(inp.value, 10) || 2));
                 setPath(siteData, inp.dataset.k, v); setDirty(true);
             });
@@ -1558,10 +1562,10 @@
             const st = g.used ? ['USED', 'rejected'] : expired ? ['EXPIRED', 'cancelled'] : ['VALID', 'confirmed'];
             const paid = g.paidAt && g.paidAt.seconds ? new Date(g.paidAt.seconds * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
             const pdf = GIFT_API + '/giftPdf?id=' + g.id + '&t=' + g.token;
-            return '<div class="booking-card"><div class="bk-top"><div><div class="bk-name">€ ' + esc(g.amount) + ' &nbsp;<span style="letter-spacing:2px;color:var(--accent-warm)">' + esc(g.code) + '</span></div>' +
+            return '<div class="booking-card"><div class="bk-top"><div><div class="bk-name">€ ' + esc(g.value || g.amount) + ' &nbsp;<span style="letter-spacing:2px;color:var(--accent-warm)">' + esc(g.code) + '</span></div>' +
                 '<div style="font-size:13px;margin-top:4px">For <b>' + esc(g.to) + '</b> · from <b>' + esc(g.from) + '</b></div></div><span class="bk-status ' + st[1] + '">' + st[0] + '</span></div>' +
                 (g.message ? '<div class="bk-desc" style="margin-top:0;font-style:italic">“' + esc(g.message) + '”</div>' : '') +
-                '<div style="font-size:12px;color:var(--text-soft);margin:8px 0 12px;line-height:1.7">Bought ' + esc(paid) + ' by ' + esc(g.email) + '<br>Valid until <b>' + esc(g.validUntil || '') + '</b>' + (g.used && g.usedAt ? ' · used on ' + esc(g.usedAt) : '') + '</div>' +
+                '<div style="font-size:12px;color:var(--text-soft);margin:8px 0 12px;line-height:1.7">Bought ' + esc(paid) + ' by ' + esc(g.email) + (g.value && g.value !== g.amount ? ' · paid <b>€ ' + esc(g.amount) + '</b> (promotion)' : '') + '<br>Valid until <b>' + esc(g.validUntil || '') + '</b>' + (g.used && g.usedAt ? ' · used on ' + esc(g.usedAt) : '') + '</div>' +
                 '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="mini-btn' + (g.used ? '' : ' accent') + '" onclick="toggleGiftUsed(\'' + g.id + '\')">' + (g.used ? '<i class="fas fa-rotate-left"></i> Undo used' : '<i class="fas fa-check"></i> Mark as used') + '</button>' +
                 '<a class="mini-btn" href="' + pdf + '&view=1" target="_blank" rel="noopener"><i class="fas fa-file-pdf"></i> PDF</a>' +
                 '<button class="mini-btn" style="margin-left:auto;color:var(--red)" onclick="deleteGift(\'' + g.id + '\')"><i class="fas fa-trash-can"></i> Delete</button></div></div>';
